@@ -365,6 +365,92 @@
             background: #1C1C1E;
             color: #FFFFFF;
         }
+        /* Autocomplete dropdown for Who's Playing */
+        .autocomplete-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .autocomplete-input {
+            width: 100%;
+            background: #1A1A1A;
+            border: 1px solid #2C2C2E;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #FFFFFF;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .autocomplete-input:focus {
+            border-color: #30D158;
+        }
+        .autocomplete-input::placeholder {
+            color: #48484A;
+        }
+        .autocomplete-input.has-selection {
+            border-color: #30D158;
+            background: rgba(48, 209, 88, 0.08);
+        }
+        .autocomplete-input:focus.has-selection {
+            border-color: #30D158;
+            background: rgba(48, 209, 88, 0.08);
+        }
+        .autocomplete-input:not(:focus).has-selection {
+            border-color: #2C2C2E;
+            background: #1A1A1A;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #1C1C1E;
+            border: 1px solid #2C2C2E;
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+        .autocomplete-dropdown.drop-up {
+            top: auto;
+            bottom: 100%;
+            margin-top: 0;
+            margin-bottom: 4px;
+        }
+        .autocomplete-option {
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #FFFFFF;
+            transition: background 0.15s;
+        }
+        .autocomplete-option:hover,
+        .autocomplete-option.highlighted {
+            background: rgba(48, 209, 88, 0.15);
+        }
+        .autocomplete-option.disabled {
+            color: #48484A;
+            cursor: not-allowed;
+            background: transparent;
+        }
+        .autocomplete-no-results {
+            padding: 10px 12px;
+            color: #30D158;
+            font-size: 13px;
+        }
+        .selection-slot {
+            margin-bottom: 0;
+        }
+        .selection-slot-number {
+            color: #48484A;
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
         .player-input-card:focus-within {
             border-color: #30D158;
             background: #1F1F1F;
@@ -502,14 +588,26 @@
 
             /* ===== GENERATE KOHOT - REVIEW PLAYERS STEP ===== */
             /* Remove outer container styling on mobile for max horizontal space */
-            #admin-step-edit .roster-container {
+            #admin-step-edit .roster-container,
+            #admin-step-manual .roster-container {
                 background: transparent;
                 padding-left: 0;
                 padding-right: 0;
             }
-            /* Player inputs: 1 column on mobile */
-            #player-inputs {
+            /* Player inputs: 1 column on mobile with tighter gap */
+            #player-inputs,
+            #manual-selection-slots {
                 grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }
+            /* Smaller autocomplete input on mobile */
+            .autocomplete-input {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            .selection-slot-number {
+                font-size: 10px;
+                margin-bottom: 1px;
             }
             /* Prevent player card overflow when fitness controls are visible */
             .player-input-card {
@@ -780,6 +878,40 @@
                 <p id="upload-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
             </div>
 
+            <!-- Step 1b: Who's Playing? (Manual Selection) -->
+            <div id="admin-step-manual" class="hidden">
+                <div class="flex items-center gap-3 mb-6">
+                    <button
+                        onclick="goBackFromManualSelection()"
+                        class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
+                        aria-label="Go back"
+                    >
+                        ←
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-semibold mb-1">Who's Playing?</h2>
+                        <p class="text-text-secondary text-sm">Select 12 players or type guest names.</p>
+                    </div>
+                </div>
+
+                <div class="roster-container p-5">
+                    <div id="manual-selection-slots" class="grid grid-cols-2 gap-3">
+                        <!-- 12 autocomplete slots rendered here -->
+                    </div>
+                </div>
+
+                <button
+                    id="manual-continue-btn"
+                    onclick="continueFromManualSelection()"
+                    class="w-full btn-primary py-3 mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    Continue
+                </button>
+
+                <p id="manual-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+            </div>
+
             <!-- Step 2: Who Are They? (Resolve Unrecognized Players) -->
             <div id="admin-step-resolve" class="hidden">
                 <div class="flex items-center gap-3 mb-6">
@@ -873,7 +1005,7 @@
                                 class="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                                 tabindex="-1"
                             >
-                                Reset
+                                Reset Changes
                             </button>
                             <button
                                 id="generate-btn"
@@ -1008,6 +1140,8 @@
         let registeredPlayers = [];     // Array of {id, name} from upload response
         let parsedPlayers = [];         // Full players array from upload (for passing to edit step)
         let cameFromResolveStep = false; // Track navigation path for back button
+        let cameFromManualStep = false;  // Track if we came from manual selection step
+        let manualSelections = [];       // Array of 12 selected players for manual flow
 
         // Fitness options (key = API value, label = display text)
         const FITNESS_OPTIONS = [
@@ -1524,11 +1658,291 @@
             }
         }
 
-        // Start manually - bypass upload and go directly to Review Players with empty slots
-        function startManually() {
-            const emptyPlayers = Array(12).fill(null).map(() => ({ id: 0, name: '' }));
-            cameFromResolveStep = false; // No resolve step when starting manually
-            showEditStep(emptyPlayers);
+        // Start manually - show "Who's Playing?" selection screen
+        async function startManually() {
+            // Fetch players if not already loaded
+            if (allPlayers.length === 0) {
+                try {
+                    const res = await fetch('/api/players');
+                    if (res.ok) {
+                        allPlayers = await res.json();
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch players:', err);
+                }
+            }
+
+            // Initialize empty selections
+            manualSelections = Array(12).fill(null);
+
+            // Show manual selection step
+            document.getElementById('admin-step-upload').classList.add('hidden');
+            document.getElementById('admin-step-manual').classList.remove('hidden');
+
+            renderManualSelectionSlots();
+        }
+
+        function renderManualSelectionSlots() {
+            const container = document.getElementById('manual-selection-slots');
+            let html = '';
+
+            for (let i = 0; i < 12; i++) {
+                const selection = manualSelections[i];
+                const value = selection ? selection.name : '';
+                const hasSelection = selection && selection.id > 0;
+
+                html += `
+                    <div class="selection-slot">
+                        <div class="selection-slot-number">Player ${i + 1}</div>
+                        <div class="autocomplete-wrapper">
+                            <input
+                                type="text"
+                                class="autocomplete-input${hasSelection ? ' has-selection' : ''}"
+                                placeholder="Search or type guest name..."
+                                value="${escapeHtml(value)}"
+                                data-slot-index="${i}"
+                                oninput="handleAutocompleteInput(${i}, this)"
+                                onfocus="showAutocompleteDropdown(${i})"
+                                onkeydown="handleAutocompleteKeydown(event, ${i})"
+                                tabindex="${i + 1}"
+                            >
+                            <div id="autocomplete-dropdown-${i}" class="autocomplete-dropdown"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+            validateManualSelections();
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', closeAllDropdowns);
+        }
+
+        function handleAutocompleteInput(slotIndex, input) {
+            const query = input.value.trim().toLowerCase();
+
+            // Update selection state
+            if (query === '') {
+                manualSelections[slotIndex] = null;
+                input.classList.remove('has-selection');
+            } else {
+                // Check if it matches a player exactly
+                const exactMatch = allPlayers.find(p => p.name.toLowerCase() === query);
+                if (exactMatch && !isPlayerAlreadySelected(exactMatch.id, slotIndex)) {
+                    manualSelections[slotIndex] = {
+                        id: exactMatch.id,
+                        name: exactMatch.name,
+                        skill: 5.0,  // Will be fetched from DB during team generation
+                        fitness: 2.0
+                    };
+                    input.classList.add('has-selection');
+                } else {
+                    // Treat as guest
+                    manualSelections[slotIndex] = {
+                        id: -1,
+                        name: input.value.trim(),
+                        skill: 5.0,
+                        fitness: 2.0
+                    };
+                    input.classList.remove('has-selection');
+                }
+            }
+
+            showAutocompleteDropdown(slotIndex);
+            validateManualSelections();
+        }
+
+        function showAutocompleteDropdown(slotIndex) {
+            // Close all other dropdowns first
+            for (let i = 0; i < 12; i++) {
+                if (i !== slotIndex) {
+                    closeDropdown(i);
+                }
+            }
+
+            const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
+            const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
+            const currentSelection = manualSelections[slotIndex];
+            const rawValue = input.value.trim().toLowerCase();
+
+            // If there's a selection and the input matches it exactly, show all players (user wants to change)
+            const isShowingSelectedValue = currentSelection && currentSelection.id > 0 &&
+                currentSelection.name.toLowerCase() === rawValue;
+            const query = isShowingSelectedValue ? '' : rawValue;
+
+            // Filter players
+            let filtered = allPlayers.filter(p => {
+                if (!query) return true;
+                return p.name.toLowerCase().includes(query);
+            });
+
+            // Sort: exact matches first, then alphabetically
+            filtered.sort((a, b) => {
+                if (query) {
+                    const aStartsWith = a.name.toLowerCase().startsWith(query);
+                    const bStartsWith = b.name.toLowerCase().startsWith(query);
+                    if (aStartsWith && !bStartsWith) return -1;
+                    if (!aStartsWith && bStartsWith) return 1;
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = `<div class="autocomplete-no-results">"${escapeHtml(input.value.trim())}" will be added as guest</div>`;
+            } else {
+                dropdown.innerHTML = filtered.map((player, idx) => {
+                    const isSelected = isPlayerAlreadySelected(player.id, slotIndex);
+                    const disabledClass = isSelected ? ' disabled' : '';
+                    return `
+                        <div class="autocomplete-option${disabledClass}"
+                             data-player-id="${player.id}"
+                             data-player-name="${escapeHtml(player.name)}"
+                             onmouseenter="highlightOption(this)"
+                             onclick="${isSelected ? '' : `selectAutocompleteOption(${slotIndex}, this)`}">
+                            ${escapeHtml(player.name)}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Check if dropdown should open upward (for slots near bottom)
+            // In 2-column layout: slots 8,9,10,11 are in bottom 2 rows
+            // In 1-column layout (mobile): slots 9,10,11 are near bottom
+            const inputRect = input.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - inputRect.bottom;
+            const isBottomSlot = slotIndex >= 8; // Bottom 2 rows in 2-col, bottom 4 in 1-col
+            if (spaceBelow < 250 || isBottomSlot) {
+                dropdown.classList.add('drop-up');
+            } else {
+                dropdown.classList.remove('drop-up');
+            }
+
+            dropdown.classList.add('show');
+        }
+
+        function highlightOption(option) {
+            // Remove highlight from all options in this dropdown
+            const dropdown = option.closest('.autocomplete-dropdown');
+            dropdown.querySelectorAll('.autocomplete-option').forEach(opt => {
+                opt.classList.remove('highlighted');
+            });
+            // Highlight this one
+            option.classList.add('highlighted');
+        }
+
+        function isPlayerAlreadySelected(playerId, excludeSlot) {
+            return manualSelections.some((sel, idx) =>
+                idx !== excludeSlot && sel && sel.id === playerId && playerId > 0
+            );
+        }
+
+        function selectAutocompleteOption(slotIndex, option) {
+            const playerId = parseInt(option.dataset.playerId);
+            const playerName = option.dataset.playerName;
+
+            const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
+            input.value = playerName;
+            input.classList.add('has-selection');
+
+            manualSelections[slotIndex] = {
+                id: playerId,
+                name: playerName,
+                skill: 5.0,  // Will be fetched from DB during team generation
+                fitness: 2.0
+            };
+
+            closeDropdown(slotIndex);
+            input.blur(); // Remove focus to prevent dropdown reopening
+            validateManualSelections();
+        }
+
+        function handleAutocompleteKeydown(event, slotIndex) {
+            const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
+            const options = dropdown.querySelectorAll('.autocomplete-option:not(.disabled)');
+            const highlighted = dropdown.querySelector('.autocomplete-option.highlighted');
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (options.length === 0) return;
+
+                let nextIdx = 0;
+                if (highlighted) {
+                    highlighted.classList.remove('highlighted');
+                    const idx = Array.from(options).indexOf(highlighted);
+                    nextIdx = Math.min(idx + 1, options.length - 1);
+                }
+                options[nextIdx].classList.add('highlighted');
+                options[nextIdx].scrollIntoView({ block: 'nearest' });
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (options.length === 0) return;
+
+                let prevIdx = options.length - 1;
+                if (highlighted) {
+                    highlighted.classList.remove('highlighted');
+                    const idx = Array.from(options).indexOf(highlighted);
+                    prevIdx = Math.max(idx - 1, 0);
+                }
+                options[prevIdx].classList.add('highlighted');
+                options[prevIdx].scrollIntoView({ block: 'nearest' });
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                if (highlighted) {
+                    selectAutocompleteOption(slotIndex, highlighted);
+                }
+            } else if (event.key === 'Escape') {
+                closeDropdown(slotIndex);
+            } else if (event.key === 'Tab') {
+                closeDropdown(slotIndex);
+                // Let the natural tab behavior proceed
+            }
+        }
+
+        function closeDropdown(slotIndex) {
+            const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
+            if (dropdown) {
+                dropdown.classList.remove('show');
+            }
+        }
+
+        function closeAllDropdowns(event) {
+            if (!event.target.closest('.autocomplete-wrapper')) {
+                for (let i = 0; i < 12; i++) {
+                    closeDropdown(i);
+                }
+            }
+        }
+
+        function validateManualSelections() {
+            const filledCount = manualSelections.filter(s => s && s.name.trim() !== '').length;
+            const btn = document.getElementById('manual-continue-btn');
+            btn.disabled = filledCount !== 12;
+        }
+
+        function goBackFromManualSelection() {
+            document.getElementById('admin-step-manual').classList.add('hidden');
+            document.getElementById('admin-step-upload').classList.remove('hidden');
+            manualSelections = [];
+            document.removeEventListener('click', closeAllDropdowns);
+        }
+
+        function continueFromManualSelection() {
+            // Build players array for Review step
+            const players = manualSelections.map(sel => ({
+                id: sel.id,
+                name: sel.name,
+                skill: sel.skill,
+                fitness: sel.fitness
+            }));
+
+            parsedPlayers = players;
+            cameFromResolveStep = false;
+            cameFromManualStep = true;
+
+            document.getElementById('admin-step-manual').classList.add('hidden');
+            document.removeEventListener('click', closeAllDropdowns);
+            showEditStep(players);
         }
 
         function showUploadError(msg) {
@@ -1639,6 +2053,7 @@
         function showEditStep(players) {
             document.getElementById('admin-step-upload').classList.add('hidden');
             document.getElementById('admin-step-resolve').classList.add('hidden');
+            document.getElementById('admin-step-manual').classList.add('hidden');
             document.getElementById('admin-step-edit').classList.remove('hidden');
 
             // Store original data for reset
@@ -1654,6 +2069,9 @@
                 const name = p ? p.name : '';
                 const id = p ? p.id : 0;
                 const isUnrecognized = !id || id <= 0;
+                // Use skill/fitness from player object if available, else defaults
+                const skill = (p && p.skill != null) ? Math.round(p.skill) : 5;
+                const fitness = (p && p.fitness != null) ? Math.round(p.fitness) : 2;
 
                 html += `
                     <div class="player-input-card" data-index="${i}" data-unrecognized="${isUnrecognized}">
@@ -1670,7 +2088,7 @@
                                 tabindex="${i + 1}"
                             >
                         </div>
-                        ${isUnrecognized ? renderInlineControls(i, 5, 2, considerFitness) : ''}
+                        ${isUnrecognized ? renderInlineControls(i, skill, fitness, considerFitness) : ''}
                     </div>
                 `;
             }
@@ -2430,6 +2848,7 @@
         function resetUpload() {
             document.getElementById('admin-step-upload').classList.remove('hidden');
             document.getElementById('admin-step-resolve').classList.add('hidden');
+            document.getElementById('admin-step-manual').classList.add('hidden');
             document.getElementById('admin-step-edit').classList.add('hidden');
             document.getElementById('admin-step-teams').classList.add('hidden');
             document.getElementById('file-input').value = '';
@@ -2439,6 +2858,9 @@
             unresolvedPlayers = [];
             registeredPlayers = [];
             parsedPlayers = [];
+            manualSelections = [];
+            cameFromManualStep = false;
+            cameFromResolveStep = false;
         }
 
         function resetPlayerChanges() {
@@ -2457,16 +2879,28 @@
                 return;
             }
 
+            // If we came from the manual selection step, go back there
+            if (cameFromManualStep) {
+                document.getElementById('admin-step-edit').classList.add('hidden');
+                document.getElementById('admin-step-manual').classList.remove('hidden');
+                cameFromManualStep = false; // Reset for next navigation
+                // Re-render slots with previous selections
+                renderManualSelectionSlots();
+                return;
+            }
+
             // Otherwise, go all the way back to upload
             document.getElementById('admin-step-upload').classList.remove('hidden');
             document.getElementById('admin-step-resolve').classList.add('hidden');
             document.getElementById('admin-step-edit').classList.add('hidden');
+            document.getElementById('admin-step-manual').classList.add('hidden');
             document.getElementById('file-input').value = '';
             document.getElementById('upload-error').classList.add('hidden');
             // Clear resolve state
             unresolvedPlayers = [];
             registeredPlayers = [];
             parsedPlayers = [];
+            manualSelections = [];
         }
 
         function goBackToReview() {

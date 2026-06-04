@@ -35,19 +35,19 @@ func seedTestPlayers() {
 		isAdmin int
 		tier    int
 	}{
-		{"Omer", "+972501111111", `["Omeri"]`, 0, 1},  // Core
-		{"Dan", "+972502222222", `["Danny"]`, 0, 1},   // Core
-		{"Niv", "+972503333333", `["Nivi"]`, 0, 2},    // Regular
-		{"Yossi", "+972504444444", `[]`, 0, 2},        // Regular
-		{"Amit", "+972505555555", `[]`, 0, 2},         // Regular
-		{"Roi", "+972506666666", `[]`, 0, 3},          // Occasional
-		{"Gal", "+972507777777", `[]`, 0, 3},          // Occasional
-		{"Tomer", "+972508888888", `[]`, 0, 3},        // Occasional
-		{"Oren", "+972509999999", `[]`, 0, 3},         // Occasional
-		{"Ben", "+972500000000", `[]`, 0, 4},          // Rare
-		{"Lior", "+972501010101", `[]`, 0, 4},         // Rare
-		{"Shai", "+972502020202", `[]`, 0, 4},         // Rare
-		{"Admin", "+972509090909", `[]`, 1, 1},        // Admin (Core)
+		{"Omer", "+972501111111", `["Omeri"]`, 0, 1}, // Core
+		{"Dan", "+972502222222", `["Danny"]`, 0, 1},  // Core
+		{"Niv", "+972503333333", `["Nivi"]`, 0, 2},   // Regular
+		{"Yossi", "+972504444444", `[]`, 0, 2},       // Regular
+		{"Amit", "+972505555555", `[]`, 0, 2},        // Regular
+		{"Roi", "+972506666666", `[]`, 0, 3},         // Occasional
+		{"Gal", "+972507777777", `[]`, 0, 3},         // Occasional
+		{"Tomer", "+972508888888", `[]`, 0, 3},       // Occasional
+		{"Oren", "+972509999999", `[]`, 0, 3},        // Occasional
+		{"Ben", "+972500000000", `[]`, 0, 4},         // Rare
+		{"Lior", "+972501010101", `[]`, 0, 4},        // Rare
+		{"Shai", "+972502020202", `[]`, 0, 4},        // Rare
+		{"Admin", "+972509090909", `[]`, 1, 1},       // Admin (Core)
 	}
 
 	for _, p := range players {
@@ -375,21 +375,6 @@ var _ = Describe("HTTP Endpoints", func() {
 					tier := int(p["tier"].(float64))
 					Expect(tier).To(BeNumerically(">=", 1))
 					Expect(tier).To(BeNumerically("<=", 4))
-				}
-			})
-
-			It("includes base ratings", func() {
-				req := httptest.NewRequest("GET", "/api/players", nil)
-				req.AddCookie(sessionCookie)
-				w := httptest.NewRecorder()
-				testServer.ServeHTTP(w, req)
-
-				var players []map[string]interface{}
-				decodeResponse(w, &players)
-
-				for _, p := range players {
-					Expect(p).To(HaveKey("base_skill_rating"))
-					Expect(p).To(HaveKey("base_fitness_rating"))
 				}
 			})
 

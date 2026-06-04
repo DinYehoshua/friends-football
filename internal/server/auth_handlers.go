@@ -179,11 +179,9 @@ func getSessionPlayerID(r *http.Request) (int, error) {
 
 // PlayerResponse represents a player in API responses.
 type PlayerResponse struct {
-	ID                int     `json:"id"`
-	Name              string  `json:"name"`
-	Tier              int     `json:"tier"` // 1=Core, 2=Regular, 3=Occasional, 4=Rare
-	BaseSkillRating   float64 `json:"base_skill_rating"`
-	BaseFitnessRating float64 `json:"base_fitness_rating"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Tier int    `json:"tier"` // 1=Core, 2=Regular, 3=Occasional, 4=Rare
 	// Voter's existing ratings for this player (null if not rated)
 	MySkillRating   *int    `json:"my_skill_rating,omitempty"`
 	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Poor", "Normal", "Good"
@@ -206,8 +204,7 @@ func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 
 	// Get all players except the voter, sorted by tier ASC then name ASC
 	query := fmt.Sprintf(`
-		SELECT p.id, p.name, p.tier, p.base_skill_rating, p.base_fitness_rating,
-		       ar.skill_rating, ar.fitness_rating
+		SELECT p.id, p.name, p.tier, ar.skill_rating, ar.fitness_rating
 		FROM players p
 		LEFT JOIN anonymous_ratings ar ON ar.target_id = p.id AND ar.voter_id = %s
 		WHERE p.id != %s
@@ -224,8 +221,7 @@ func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var p PlayerResponse
 		var skillRating, fitnessRating *int
-		if err := rows.Scan(&p.ID, &p.Name, &p.Tier, &p.BaseSkillRating, &p.BaseFitnessRating,
-			&skillRating, &fitnessRating); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Tier, &skillRating, &fitnessRating); err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to scan player")
 			return
 		}

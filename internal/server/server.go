@@ -116,7 +116,7 @@ func New(cfg Config) *Server {
 			Addr:         cfg.Port,
 			Handler:      mux,
 			ReadTimeout:  15 * time.Second,
-			WriteTimeout: 15 * time.Second,
+			WriteTimeout: 45 * time.Second, // Longer timeout for Gemini API calls
 			IdleTimeout:  60 * time.Second,
 		},
 	}

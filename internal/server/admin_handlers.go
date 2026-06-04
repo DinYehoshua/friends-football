@@ -152,11 +152,19 @@ type GenerateTeamsRequest struct {
 	ConsiderFitness bool          `json:"consider_fitness"`
 }
 
+// TeamPlayerResponse represents a player in a generated team response.
+type TeamPlayerResponse struct {
+	ID                int     `json:"id"`
+	Name              string  `json:"name"`
+	BaseSkillRating   float64 `json:"base_skill_rating"`
+	BaseFitnessRating float64 `json:"base_fitness_rating"`
+}
+
 // TeamResponse represents a team in the API response.
 type TeamResponse struct {
-	Players      []PlayerResponse `json:"players"`
-	TotalSkill   float64          `json:"total_skill"`
-	TotalFitness float64          `json:"total_fitness"`
+	Players      []TeamPlayerResponse `json:"players"`
+	TotalSkill   float64              `json:"total_skill"`
+	TotalFitness float64              `json:"total_fitness"`
 }
 
 // GenerateTeamsResponse represents the response from team generation.
@@ -352,9 +360,9 @@ func resolvePlayers(inputs []PlayerInput) ([]database.Player, error) {
 
 // buildTeamResponse converts balancer.Team to TeamResponse.
 func buildTeamResponse(team balancer.Team) TeamResponse {
-	players := make([]PlayerResponse, len(team.Players))
+	players := make([]TeamPlayerResponse, len(team.Players))
 	for i, p := range team.Players {
-		players[i] = PlayerResponse{
+		players[i] = TeamPlayerResponse{
 			ID:                p.ID,
 			Name:              p.Name,
 			BaseSkillRating:   p.SkillRating,
