@@ -28,9 +28,43 @@
         * {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
         }
+        html {
+            touch-action: manipulation;
+        }
         body {
             background-color: #000000;
             min-height: 100vh;
+            touch-action: pan-x pan-y;
+        }
+        /* Admin tooltip */
+        .admin-tooltip {
+            position: absolute;
+            background: #2C2C2E;
+            color: #FFFFFF;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+        .admin-tooltip.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .admin-tooltip::after {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 6px 6px 6px;
+            border-style: solid;
+            border-color: transparent transparent #2C2C2E transparent;
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; }
@@ -438,10 +472,12 @@
             cursor: not-allowed;
             background: transparent;
         }
-        .autocomplete-no-results {
-            padding: 10px 12px;
+        .autocomplete-option.guest-option {
             color: #30D158;
-            font-size: 13px;
+            font-style: italic;
+        }
+        .autocomplete-option.guest-option:hover {
+            background: rgba(48, 209, 88, 0.15);
         }
         .selection-slot {
             margin-bottom: 0;
@@ -782,7 +818,7 @@
                 >
                     Continue
                 </button>
-                <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+                <p id="login-error" class="text-red-500 text-sm text-center hidden whitespace-pre-line"></p>
             </div>
         </div>
 
@@ -1187,13 +1223,56 @@
             if (isAdmin) {
                 adminTab.classList.remove('text-text-disabled', 'cursor-not-allowed');
                 adminTab.classList.add('text-text-secondary', 'hover:text-text-primary');
-                adminTab.disabled = false;
+                adminTab.onclick = () => showView('admin');
             } else {
-                adminTab.classList.add('text-text-disabled', 'cursor-not-allowed');
+                adminTab.classList.add('text-text-disabled');
                 adminTab.classList.remove('text-text-secondary', 'hover:text-text-primary');
-                adminTab.disabled = true;
-                adminTab.onclick = (e) => { e.preventDefault(); };
+                adminTab.onclick = (e) => {
+                    e.preventDefault();
+                    showAdminTooltip(adminTab);
+                };
             }
+        }
+
+        function showAdminTooltip(targetElement) {
+            // Remove any existing tooltip
+            const existingTooltip = document.querySelector('.admin-tooltip');
+            if (existingTooltip) {
+                existingTooltip.remove();
+            }
+
+            // Create tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'admin-tooltip';
+            tooltip.textContent = 'Managers only';
+            document.body.appendChild(tooltip);
+
+            // Position tooltip below the button
+            const rect = targetElement.getBoundingClientRect();
+            const tooltipWidth = tooltip.offsetWidth;
+            let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+
+            // Ensure tooltip doesn't overflow viewport on mobile
+            const padding = 8;
+            if (left < padding) {
+                left = padding;
+            } else if (left + tooltipWidth > window.innerWidth - padding) {
+                left = window.innerWidth - tooltipWidth - padding;
+            }
+
+            tooltip.style.top = `${rect.bottom + 8}px`;
+            tooltip.style.left = `${left}px`;
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                tooltip.classList.add('show');
+            });
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                tooltip.classList.remove('show');
+                setTimeout(() => tooltip.remove(), 200);
+            }, 3000);
         }
 
         // ============ Login ============
@@ -1203,7 +1282,7 @@
             errorEl.classList.add('hidden');
 
             if (!phone) {
-                errorEl.textContent = 'Please enter your phone number';
+                errorEl.textContent = 'What are you trying to do? Enter your phone.';
                 errorEl.classList.remove('hidden');
                 return;
             }
@@ -1789,7 +1868,7 @@
             });
 
             if (filtered.length === 0) {
-                dropdown.innerHTML = `<div class="autocomplete-no-results">"${escapeHtml(input.value.trim())}" will be added as guest</div>`;
+                dropdown.innerHTML = `<div class="autocomplete-option guest-option" onclick="confirmGuestSelection(${slotIndex})">Add "${escapeHtml(input.value.trim())}" as guest</div>`;
             } else {
                 dropdown.innerHTML = filtered.map((player, idx) => {
                     const isSelected = isPlayerAlreadySelected(player.id, slotIndex);
@@ -1857,6 +1936,22 @@
             validateManualSelections();
         }
 
+        function confirmGuestSelection(slotIndex) {
+            const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
+            const guestName = input.value.trim();
+
+            manualSelections[slotIndex] = {
+                id: -1,
+                name: guestName,
+                skill: 5.0,
+                fitness: 2.0
+            };
+
+            closeDropdown(slotIndex);
+            input.blur();
+            validateManualSelections();
+        }
+
         function handleAutocompleteKeydown(event, slotIndex) {
             const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
             const options = dropdown.querySelectorAll('.autocomplete-option:not(.disabled)');
@@ -1889,7 +1984,12 @@
             } else if (event.key === 'Enter') {
                 event.preventDefault();
                 if (highlighted) {
-                    selectAutocompleteOption(slotIndex, highlighted);
+                    // Check if it's a guest option
+                    if (highlighted.classList.contains('guest-option')) {
+                        confirmGuestSelection(slotIndex);
+                    } else {
+                        selectAutocompleteOption(slotIndex, highlighted);
+                    }
                 }
             } else if (event.key === 'Escape') {
                 closeDropdown(slotIndex);
@@ -2942,10 +3042,11 @@
                     }
 
                     // Check admin status via lightweight HEAD request to admin endpoint
+                    // 405 = admin (method not allowed but authorized past admin check)
+                    // 403 = not admin, 401 = not authenticated
                     try {
                         const adminRes = await fetch('/api/admin/upload', { method: 'HEAD' });
-                        // 403 = not admin, 405 = admin (method not allowed but authorized)
-                        isAdmin = adminRes.status !== 403;
+                        isAdmin = adminRes.status === 405;
                     } catch {
                         isAdmin = false;
                     }
@@ -2963,6 +3064,35 @@
 
         // Start
         checkAuth();
+
+        // Prevent all zooming on iOS
+        // 1. Pinch-zoom via gesture events
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+        document.addEventListener('gesturechange', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+        document.addEventListener('gestureend', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+
+        // 2. Double-tap zoom prevention
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        // 3. Prevent zoom on multi-touch
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>

@@ -196,7 +196,7 @@ func (s *Server) handleGenerateTeams(w http.ResponseWriter, r *http.Request) {
 
 	// Validate player count
 	if len(req.Players) != 12 {
-		writeError(w, http.StatusBadRequest, "exactly 12 players are required")
+		writeError(w, http.StatusBadRequest, "We need exactly 12 players. No more, no less!")
 		return
 	}
 

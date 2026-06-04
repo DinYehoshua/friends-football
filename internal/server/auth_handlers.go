@@ -53,7 +53,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Phone == "" {
-		writeError(w, http.StatusBadRequest, "phone number is required")
+		writeError(w, http.StatusBadRequest, "What are you trying to do? Enter your phone.")
 		return
 	}
 
@@ -62,7 +62,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Validate phone length (Israeli numbers: 10 digits like 0501234567)
 	if len(phone) != 10 && len(phone) != 13 { // 10 for local, 13 for +972...
-		writeError(w, http.StatusBadRequest, "phone number must be 10 digits (or 13 with country code)")
+		writeError(w, http.StatusBadRequest, "Phone number must be 10 digits (or 13 with country code)")
 		return
 	}
 
@@ -70,7 +70,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	player, err := getPlayerByPhone(phone)
 	if err != nil {
 		log.Printf("[Login] Failed login attempt - phone not found: %s", phone)
-		writeError(w, http.StatusUnauthorized, "player not found")
+		writeError(w, http.StatusUnauthorized, "Who are you?\nTalk to the manager to join us!")
 		return
 	}
 
@@ -196,7 +196,7 @@ type PlayerResponse struct {
 func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 	voterID, err := getSessionPlayerID(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "not authenticated")
+		writeError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
 
@@ -271,7 +271,7 @@ type RatingRequest struct {
 func (s *Server) handleSubmitRatings(w http.ResponseWriter, r *http.Request) {
 	voterID, err := getSessionPlayerID(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "not authenticated")
+		writeError(w, http.StatusUnauthorized, "Not authenticated")
 		return
 	}
 
@@ -293,7 +293,7 @@ func (s *Server) handleSubmitRatings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if req.TargetID == voterID {
-			writeError(w, http.StatusBadRequest, fmt.Sprintf("rating %d: cannot rate yourself", i))
+			writeError(w, http.StatusBadRequest, "Nice try, but you can't rate yourself!")
 			return
 		}
 		if req.SkillRating < 1 || req.SkillRating > 10 {

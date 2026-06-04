@@ -180,7 +180,7 @@ func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		playerID, err := getSessionPlayerID(r)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "not authenticated")
+			writeError(w, http.StatusUnauthorized, "Not authenticated")
 			return
 		}
 
@@ -189,12 +189,12 @@ func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 		query := fmt.Sprintf(`SELECT is_admin FROM players WHERE id = %s`, database.Placeholder(1))
 		err = database.DB.QueryRow(query, playerID).Scan(&isAdmin)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "player not found")
+			writeError(w, http.StatusUnauthorized, "Player not found")
 			return
 		}
 
 		if !isAdmin {
-			writeError(w, http.StatusForbidden, "admin access required")
+			writeError(w, http.StatusForbidden, "Only the manager can do that!")
 			return
 		}
 
