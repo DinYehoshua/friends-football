@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,6 +30,10 @@ func main() {
 
 	// Create and start HTTP server with embedded static files
 	port := getEnv("PORT", defaultPort)
+	// Render sets PORT as just a number (e.g., "10000"), ensure it has colon prefix
+	if !strings.HasPrefix(port, ":") {
+		port = ":" + port
+	}
 	srv := server.New(server.Config{
 		Port:        port,
 		StaticFiles: frontend.StaticFiles,
