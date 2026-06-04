@@ -1,0 +1,2530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends Football</title>
+    <!-- Favicon using emoji via SVG data URL -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨🏾‍🤝‍👨🏽</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pitch': '#000000',
+                        'border': '#2C2C2E',
+                        'accent': '#30D158',
+                        'accent-blue': '#0A84FF',
+                        'text-primary': '#FFFFFF',
+                        'text-secondary': '#8E8E93',
+                        'text-disabled': '#48484A',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+        }
+        body {
+            background-color: #000000;
+            min-height: 100vh;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1C1C1E; }
+        ::-webkit-scrollbar-thumb { background: #48484A; border-radius: 3px; }
+        /* Button spinner */
+        .btn-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Drag and drop styles */
+        .dragging {
+            opacity: 0.7;
+            border-color: #30D158 !important;
+            box-shadow: 0 0 12px rgba(48, 209, 88, 0.4);
+        }
+        .player-card.drag-over {
+            border-color: #30D158 !important;
+            background: rgba(48, 209, 88, 0.15) !important;
+        }
+        /* Team card styles */
+        .white-team-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .white-team-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.35);
+        }
+        .blue-team-card {
+            background: rgba(10, 132, 255, 0.12);
+            border: 1px solid rgba(10, 132, 255, 0.4);
+        }
+        .blue-team-card:hover {
+            background: rgba(10, 132, 255, 0.18);
+            border-color: rgba(10, 132, 255, 0.55);
+        }
+        /* Drag handle - hidden on desktop, shown on mobile */
+        .drag-handle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            color: #666;
+            font-size: 14px;
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+            color: #999;
+        }
+        /* Touch drag ghost element */
+        .touch-drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.9;
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        /* Smooth transitions */
+        .view { transition: opacity 0.2s ease; }
+        /* File drop zone */
+        .drop-zone {
+            border: 2px dashed #2C2C2E;
+            transition: all 0.2s ease;
+        }
+        .drop-zone.active {
+            border-color: #30D158;
+            background: rgba(48, 209, 88, 0.05);
+        }
+        /* Roster container - charcoal depth */
+        .roster-container {
+            background: #0D0D0D;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        /* Roster row styles */
+        .roster-row {
+            display: grid;
+            grid-template-columns: 1fr 140px 100px;
+            align-items: center;
+            padding: 12px 16px;
+            gap: 12px;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #1C1C1E;
+        }
+        .roster-row:last-child {
+            border-bottom: none;
+        }
+        .roster-row.dormant {
+            opacity: 0.45;
+        }
+        .roster-row.active {
+            opacity: 1;
+        }
+        /* Counter widget container */
+        .counter-widget {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: #1A1A1A;
+            border-radius: 8px;
+            padding: 4px 6px;
+        }
+        .counter-btn {
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            user-select: none;
+            border: none;
+            cursor: pointer;
+            background: #2A2A2A;
+        }
+        .counter-btn:active {
+            transform: scale(0.9);
+        }
+        .counter-btn.minus {
+            color: #A0A0A0;
+        }
+        .counter-btn.minus:hover {
+            background: #333;
+            color: #C0C0C0;
+        }
+        .counter-btn.plus {
+            color: #A0A0A0;
+        }
+        .counter-btn.plus:hover {
+            background: #333;
+            color: #C0C0C0;
+        }
+        .dormant .counter-btn {
+            background: #1A1A1A;
+            color: #555;
+        }
+        /* Skill display */
+        .skill-display {
+            width: 32px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            font-size: 17px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            -moz-appearance: textfield;
+        }
+        .skill-display::-webkit-outer-spin-button,
+        .skill-display::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .skill-display:focus {
+            outline: none;
+        }
+        /* Dynamic skill colors */
+        .skill-low { color: #FF6B6B; }
+        .skill-mid { color: #FFD93D; }
+        .skill-high { color: #6BCB77; }
+        .skill-dormant { color: #555; }
+        /* Fitness segmented control */
+        .fitness-control {
+            display: flex;
+            background: #1A1A1A;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .fitness-seg {
+            flex: 1;
+            padding: 6px 4px;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-radius: 5px;
+            color: #666;
+            background: transparent;
+        }
+        .fitness-seg:hover {
+            color: #999;
+            background: #252525;
+        }
+        .fitness-seg.selected {
+            background: #E5E5E5;
+            color: #000;
+        }
+        .dormant .fitness-seg {
+            color: #444;
+        }
+        .dormant .fitness-seg:hover {
+            color: #555;
+            background: #1F1F1F;
+        }
+        .dormant .fitness-seg.selected {
+            background: transparent;
+            color: #444;
+        }
+        /* Save button states */
+        .save-btn-inactive {
+            background: #1C1C1E;
+            color: #48484A;
+            pointer-events: none;
+        }
+        .save-btn-active {
+            background: #30D158;
+            color: #000000;
+        }
+        /* Table header */
+        .roster-header {
+            display: grid;
+            grid-template-columns: 1fr 140px 100px;
+            padding: 14px 16px;
+            gap: 12px;
+            background: #0D0D0D;
+            border-bottom: 1px solid #1C1C1E;
+        }
+        .roster-header span {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #48484A;
+        }
+        /* Toggle switch (iOS-style) */
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 26px;
+            background: #3A3A3C;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .toggle-switch.active {
+            background: #30D158;
+        }
+        .toggle-switch .toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .toggle-switch.active .toggle-thumb {
+            transform: translateX(18px);
+        }
+        /* Player input styling (Review Players) */
+        .player-input-card {
+            background: #1A1A1A;
+            border-radius: 10px;
+            padding: 8px 12px;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            height: 42px;
+        }
+        /* Mapping card for Who Are They screen - CSS Grid for alignment */
+        .mapping-card {
+            background: #1A1A1A;
+            border-radius: 10px;
+            padding: 10px 16px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 12px;
+        }
+        .mapping-card .unresolved-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #FFCC00;
+            text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .mapping-card .mapping-arrow {
+            color: #48484A;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .mapping-select {
+            width: 100%;
+            max-width: 180px;
+            justify-self: end;
+            background: #2C2C2E;
+            border: 1px solid #3A3A3C;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #FFFFFF;
+            font-size: 13px;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px;
+        }
+        .mapping-select:focus {
+            outline: none;
+            border-color: #30D158;
+        }
+        .mapping-select option {
+            background: #1C1C1E;
+            color: #FFFFFF;
+        }
+        .player-input-card:focus-within {
+            border-color: #30D158;
+            background: #1F1F1F;
+        }
+        .player-name-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+        .player-input-field {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .player-input-field::placeholder {
+            color: #48484A;
+        }
+        /* Inline rating controls */
+        .inline-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        /* Compact fitness control for review cards */
+        .fitness-control-compact {
+            display: flex;
+            background: #1A1A1A;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 1px;
+        }
+        .fitness-seg-compact {
+            padding: 4px 6px;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-radius: 4px;
+            color: #666;
+            background: transparent;
+        }
+        .fitness-seg-compact:hover {
+            color: #888;
+        }
+        .fitness-seg-compact.active {
+            background: #2C2C2E;
+            color: #FFF;
+        }
+        /* Secondary button style */
+        .btn-secondary {
+            background: #2C2C2E;
+            color: #EBEBF5;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.15s ease;
+        }
+        .btn-secondary:hover {
+            background: #3A3A3C;
+        }
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Primary button style */
+        .btn-primary {
+            background: #30D158;
+            color: #000000;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-radius: 10px;
+            transition: all 0.15s ease;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ========== MOBILE OVERRIDES (< 768px) ========== */
+        @media (max-width: 767px) {
+            /* Global Navigation - 2-row stacked layout inside fixed navbar */
+            .mobile-nav-container {
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: auto !important;
+                min-height: 56px;
+                padding: 12px 16px;
+                gap: 10px;
+            }
+            /* Title scaling for mobile - single line fit */
+            .mobile-nav-title {
+                font-size: 14px;
+                text-align: center;
+            }
+            /* Tab buttons - row 2 inside navbar */
+            .mobile-nav-tabs {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                width: 100%;
+            }
+            .mobile-nav-tabs .nav-tab {
+                padding: 6px 14px;
+                font-size: 12px;
+            }
+            /* Main content offset - must clear the taller mobile navbar */
+            .mobile-main-offset {
+                padding-top: 100px !important;
+            }
+
+            /* ===== GENERATE KOHOT - UPLOAD STEP ===== */
+            /* Smaller drop zone padding */
+            .drop-zone {
+                padding: 2rem 1rem;
+            }
+            .drop-zone .text-4xl {
+                font-size: 2rem;
+                margin-bottom: 0.75rem;
+            }
+
+            /* ===== GENERATE KOHOT - REVIEW PLAYERS STEP ===== */
+            /* Remove outer container styling on mobile for max horizontal space */
+            #admin-step-edit .roster-container {
+                background: transparent;
+                padding-left: 0;
+                padding-right: 0;
+            }
+            /* Player inputs: 1 column on mobile */
+            #player-inputs {
+                grid-template-columns: 1fr !important;
+            }
+            /* Prevent player card overflow when fitness controls are visible */
+            .player-input-card {
+                max-width: 100%;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            .inline-controls {
+                flex-shrink: 0;
+            }
+            /* Compact fitness control background for Review Players */
+            .fitness-control-compact {
+                background: #252525;
+                padding: 2px;
+                border-radius: 5px;
+            }
+            .fitness-seg-compact {
+                padding: 3px 4px;
+                font-size: 8px;
+                background: #1A1A1A;
+            }
+            .fitness-seg-compact.active {
+                background: #3A3A3A;
+            }
+            /* Skill counter in inline-controls needs matching wrapper */
+            .inline-controls .counter-widget {
+                background: #252525;
+                padding: 3px;
+                border-radius: 5px;
+            }
+            .inline-controls .counter-btn {
+                background: #1A1A1A;
+            }
+            .inline-controls .counter-btn:hover {
+                background: #2A2A2A;
+            }
+            /* Footer controls - stack vertically */
+            #admin-step-edit .roster-container > .mt-6 {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            #admin-step-edit .roster-container > .mt-6 > .flex:last-child {
+                width: 100%;
+            }
+            #admin-step-edit .roster-container > .mt-6 > .flex:last-child button {
+                flex: 1;
+            }
+
+            /* ===== GENERATE KOHOT - TEAMS STEP ===== */
+            /* Header: stack title and actions */
+            #admin-step-teams > .flex.items-center.justify-between {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            /* Action buttons row - full width */
+            #admin-step-teams > .flex.items-center.justify-between > .flex.gap-2 {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            /* Teams grid: single column stack */
+            #admin-step-teams > .grid.grid-cols-2 {
+                grid-template-columns: 1fr !important;
+                gap: 1rem;
+            }
+            /* Reduce min-height on team containers */
+            #white-team, #blue-team {
+                min-height: 200px !important;
+            }
+            /* Player cards in Teams view - show drag handle on mobile */
+            .player-card .drag-handle {
+                display: flex;
+            }
+            .player-card {
+                cursor: default;
+            }
+
+            /* ===== GLOBAL MOBILE RATING CONTROLS ===== */
+            /* Condensed Fitness segmented control */
+            .fitness-control {
+                padding: 2px;
+                gap: 1px;
+                border-radius: 6px;
+            }
+            .fitness-seg {
+                padding: 4px 2px;
+                font-size: 8px;
+                letter-spacing: 0.3px;
+                border-radius: 4px;
+            }
+
+            /* Compact Skill counter widget with tight background box */
+            .counter-widget {
+                padding: 3px 4px;
+                gap: 2px;
+                background: #1A1A1A;
+                border-radius: 6px;
+                width: 72px;
+                justify-content: center;
+            }
+            .counter-btn {
+                width: 20px;
+                height: 20px;
+                font-size: 12px;
+                border-radius: 4px;
+            }
+            .skill-display {
+                width: 18px;
+                font-size: 13px;
+            }
+
+            /* Roster row - precise column widths for alignment */
+            .roster-row {
+                grid-template-columns: 1fr 90px 72px;
+                gap: 8px;
+                padding: 10px 12px;
+            }
+            /* Roster header must match row columns */
+            .roster-header {
+                grid-template-columns: 1fr 90px 72px;
+                gap: 8px;
+                padding: 12px 12px;
+            }
+
+            /* Ensure player name gets maximum space */
+            .player-name-container,
+            .roster-row > span:first-child {
+                flex: 1 1 auto;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body class="bg-pitch text-text-primary">
+    <!-- Top Navigation Bar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-pitch border-b border-border">
+        <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between mobile-nav-container">
+            <div class="text-lg font-semibold tracking-tight mobile-nav-title">Friends Football ⚽️👨🏾‍🤝‍👨🏽</div>
+            <div class="flex gap-1 mobile-nav-tabs" id="nav-tabs">
+                <button id="tab-rate" class="nav-tab px-4 py-2 text-sm rounded-lg transition-colors" onclick="showView('rate')">
+                    Rate Friends
+                </button>
+                <button id="tab-admin" class="nav-tab px-4 py-2 text-sm rounded-lg transition-colors" onclick="showView('admin')">
+                    Generate Kohot
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-14 min-h-screen mobile-main-offset">
+        <!-- View A: Login Screen -->
+        <div id="view-login" class="view p-4 max-w-md mx-auto mt-20">
+            <div class="text-center mb-12">
+                <h1 class="text-3xl font-bold mb-2">Welcome</h1>
+                <p class="text-text-secondary">Enter your phone number to continue</p>
+            </div>
+            <div class="space-y-4">
+                <input
+                    type="tel"
+                    id="login-phone"
+                    placeholder="050-1234567"
+                    class="w-full bg-transparent border border-border rounded-lg px-4 py-3 text-lg focus:border-accent focus:outline-none transition-colors"
+                    onkeydown="if(event.key==='Enter') handleLogin()"
+                >
+                <button
+                    onclick="handleLogin()"
+                    class="w-full bg-accent text-pitch font-semibold py-3 rounded-lg hover:bg-opacity-90 transition-colors"
+                >
+                    Continue
+                </button>
+                <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+            </div>
+        </div>
+
+        <!-- View B: Rate Friends -->
+        <div id="view-rate" class="view hidden p-4 max-w-2xl mx-auto pb-24">
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-1">Rate Your Friends</h2>
+                <p id="rate-subtitle" class="text-text-secondary text-sm">Ratings are anonymous. Update anytime.</p>
+            </div>
+
+            <!-- Roster with charcoal container -->
+            <div class="roster-container">
+                <!-- Table header -->
+                <div class="roster-header">
+                    <span>Player</span>
+                    <span class="text-center">Fitness</span>
+                    <span class="text-center">Skill</span>
+                </div>
+
+                <div id="players-list">
+                    <!-- Roster rows rendered here -->
+                </div>
+            </div>
+
+            <div id="ratings-controls" class="mt-6 hidden">
+                <div class="flex gap-3">
+                    <button
+                        id="load-more-btn"
+                        onclick="loadMorePlayers()"
+                        class="flex-1 border border-border rounded-lg py-3 text-text-secondary hover:border-accent hover:text-accent transition-colors text-sm"
+                    >
+                        Load More
+                    </button>
+                    <button
+                        id="save-btn"
+                        onclick="saveRatingsManually()"
+                        class="flex-1 font-semibold py-3 rounded-lg transition-all text-sm save-btn-inactive"
+                    >
+                        Save Ratings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View C: Generate Kohot (Admin) -->
+        <div id="view-admin" class="view hidden p-4 max-w-4xl mx-auto pb-24">
+            <!-- Step 1: Upload -->
+            <div id="admin-step-upload">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold mb-1">Upload Your Friends</h2>
+                    <p class="text-text-secondary text-sm">Upload a WhatsApp chat or start manually to build your teams.</p>
+                </div>
+
+                <div
+                    id="drop-zone"
+                    class="drop-zone rounded-xl p-12 text-center cursor-pointer"
+                    onclick="document.getElementById('file-input').click()"
+                    ondragover="handleDragOver(event)"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="handleFileDrop(event)"
+                >
+                    <input type="file" id="file-input" accept=".zip" class="hidden" onchange="handleFileSelect(event)">
+                    <div class="text-4xl mb-4">📁</div>
+                    <p class="text-text-secondary">Drop WhatsApp chat .zip here</p>
+                    <p class="text-text-disabled text-sm mt-2">or click to browse</p>
+                </div>
+
+                <!-- Or divider -->
+                <div class="flex items-center gap-4 my-5">
+                    <div class="flex-1 h-px bg-border"></div>
+                    <span class="text-text-disabled text-sm">or</span>
+                    <div class="flex-1 h-px bg-border"></div>
+                </div>
+
+                <!-- Start Manually button -->
+                <button
+                    onclick="startManually()"
+                    class="w-full btn-secondary py-3"
+                >
+                    Start Manually
+                </button>
+
+                <!-- Mock button for testing -->
+                <button onclick="mockUploadResponse()" class="mt-4 text-xs text-text-disabled hover:text-text-secondary">
+                    [Mock Data]
+                </button>
+
+                <div id="upload-loader" class="hidden mt-8 text-center">
+                    <div class="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-text-secondary mt-2">Parsing chat...</p>
+                </div>
+
+                <p id="upload-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+            </div>
+
+            <!-- Step 2: Who Are They? (Resolve Unrecognized Players) -->
+            <div id="admin-step-resolve" class="hidden">
+                <div class="flex items-center gap-3 mb-6">
+                    <button
+                        onclick="goBackToUploadFromResolve()"
+                        class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
+                        aria-label="Go back"
+                    >
+                        ←
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-semibold mb-1">Who Are They?</h2>
+                        <p class="text-text-secondary text-sm">Map unknown names to registered players or mark as guests.</p>
+                    </div>
+                </div>
+
+                <div class="roster-container p-5">
+                    <div id="unresolved-mappings" class="space-y-3">
+                        <!-- Unresolved player mappings rendered here -->
+                    </div>
+                </div>
+
+                <!-- Save and Continue button - centered like Start Manually -->
+                <button
+                    id="resolve-continue-btn"
+                    onclick="saveAndContinueResolve()"
+                    class="w-full btn-primary py-3 mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Save and Continue
+                </button>
+
+                <div id="resolve-loader" class="hidden mt-8 text-center">
+                    <div class="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-text-secondary mt-2">Saving aliases...</p>
+                </div>
+
+                <p id="resolve-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+            </div>
+
+            <!-- Step 3: Review & Edit Players -->
+            <div id="admin-step-edit" class="hidden">
+                <!-- Header with back button (matches Your Kohot) -->
+                <div class="flex items-center gap-3 mb-6">
+                    <button
+                        onclick="goBackToUpload()"
+                        class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
+                        aria-label="Go back"
+                    >
+                        ←
+                    </button>
+                    <div>
+                        <h2 class="text-xl font-semibold mb-1">Review Players</h2>
+                        <p class="text-text-secondary text-sm">Edit names if needed.</p>
+                    </div>
+                </div>
+
+                <!-- Charcoal container matching Rate Friends -->
+                <div class="roster-container p-5">
+                    <!-- 2-column grid (6 rows) -->
+                    <div id="player-inputs" class="grid grid-cols-2 gap-3">
+                        <!-- 12 input fields rendered here -->
+                    </div>
+
+                    <!-- Note about unrecognized players -->
+                    <p class="text-text-secondary text-xs mt-4 mb-2">• Players displaying rating controls were not recognized by the system.</p>
+
+                    <!-- Footer controls -->
+                    <div class="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <!-- Toggle switch for Consider Fitness -->
+                        <div class="flex items-center gap-3 flex-1">
+                            <div
+                                id="fitness-toggle"
+                                class="toggle-switch active"
+                                onclick="toggleFitness()"
+                                role="switch"
+                                aria-checked="true"
+                                tabindex="0"
+                            >
+                                <div class="toggle-thumb"></div>
+                            </div>
+                            <span class="text-sm text-text-secondary">Consider Fitness</span>
+                            <input type="checkbox" id="consider-fitness" checked class="hidden">
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="flex gap-3">
+                            <button
+                                id="reset-changes-btn"
+                                onclick="resetPlayerChanges()"
+                                class="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Reset
+                            </button>
+                            <button
+                                id="generate-btn"
+                                onclick="generateTeams()"
+                                class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled
+                            >
+                                Generate Teams
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="generate-loader" class="hidden mt-8 text-center">
+                    <div class="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-text-secondary mt-2">Balancing teams...</p>
+                </div>
+
+                <p id="generate-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+            </div>
+
+            <!-- Step 3: Match Sheet -->
+            <div id="admin-step-teams" class="hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <!-- Back arrow + Title -->
+                    <div class="flex items-center gap-3">
+                        <button
+                            onclick="goBackToReview()"
+                            class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
+                            aria-label="Go back"
+                        >
+                            ←
+                        </button>
+                        <div>
+                            <h2 class="text-xl font-semibold">Your Kohot</h2>
+                            <p class="text-text-secondary text-sm hidden sm:block">Drag players to swap between teams</p>
+                            <p class="text-text-secondary text-sm sm:hidden">Use ⋮⋮ to drag and swap players</p>
+                        </div>
+                    </div>
+                    <!-- Action buttons -->
+                    <div class="flex gap-2 items-center">
+                        <button
+                            onclick="copyToClipboard()"
+                            class="w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
+                            aria-label="Copy to clipboard"
+                            title="Copy text roster"
+                        >
+                            📋
+                        </button>
+                        <button
+                            onclick="regenerateTeams()"
+                            class="btn-secondary text-sm"
+                        >
+                            Regenerate
+                        </button>
+                        <button
+                            onclick="shareMatchImage()"
+                            class="btn-primary text-sm min-w-[90px]"
+                        >
+                            Share
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- White Team -->
+                    <div class="border border-white/30 rounded-xl overflow-hidden">
+                        <div class="bg-white/10 px-4 py-3 border-b border-white/20">
+                            <span class="text-lg font-black text-white">White</span>
+                        </div>
+                        <div
+                            id="white-team"
+                            class="p-2 min-h-[300px]"
+                        >
+                            <!-- Players rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Blue Team -->
+                    <div class="border border-accent-blue/50 rounded-xl overflow-hidden">
+                        <div class="bg-accent-blue/15 px-4 py-3 border-b border-accent-blue/30">
+                            <span class="text-lg font-black text-[#0A84FF]">Blue</span>
+                        </div>
+                        <div
+                            id="blue-team"
+                            class="p-2 min-h-[300px]"
+                        >
+                            <!-- Players rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats hidden but calculation preserved -->
+                <div id="team-stats" class="hidden">
+                    <!-- Stats calculated here for future use -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-border px-4 py-2 rounded-lg text-sm opacity-0 transition-opacity pointer-events-none">
+        Copied to clipboard
+    </div>
+
+    <!-- Hidden canvas for image export -->
+    <canvas id="share-canvas" class="hidden"></canvas>
+
+    <script>
+        // ============ State ============
+        let isAdmin = false;
+        let allPlayers = [];
+        let visibleCount = 0;
+        const BATCH_SIZE = 15;
+        let ratings = {}; // { playerId: { skill, fitness } }
+        let touched = new Set(); // Track which players have been interacted with
+        let hasUnsavedChanges = false;
+
+        function setUserGreeting(name) {
+            // Update subtitle with personalized greeting
+            document.getElementById('rate-subtitle').textContent = `Hi ${name}, ratings are anonymous. Update anytime.`;
+        }
+
+        // Teams state
+        let whiteTeam = [];
+        let blueTeam = [];
+        let teamSkills = { white: 0, blue: 0 };
+
+        // Resolve step state
+        let unresolvedPlayers = [];     // Array of {name, index}
+        let registeredPlayers = [];     // Array of {id, name} from upload response
+        let parsedPlayers = [];         // Full players array from upload (for passing to edit step)
+        let cameFromResolveStep = false; // Track navigation path for back button
+
+        // Fitness options (key = API value, label = display text)
+        const FITNESS_OPTIONS = [
+            { key: 'Poor', label: 'Poor' },
+            { key: 'Normal', label: 'Fine' },
+            { key: 'Good', label: 'Good' }
+        ];
+
+        // Get skill color class based on value
+        function getSkillColorClass(val) {
+            if (val <= 4) return 'skill-low';
+            if (val <= 7) return 'skill-mid';
+            return 'skill-high';
+        }
+
+        // ============ Views ============
+        function showView(view) {
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(t => {
+                t.classList.remove('text-accent', 'bg-accent/10');
+                t.classList.add('text-text-secondary');
+            });
+
+            if (view === 'login') {
+                document.getElementById('view-login').classList.remove('hidden');
+                document.getElementById('nav-tabs').classList.add('hidden');
+            } else if (view === 'rate') {
+                document.getElementById('view-rate').classList.remove('hidden');
+                document.getElementById('nav-tabs').classList.remove('hidden');
+                document.getElementById('tab-rate').classList.add('text-accent', 'bg-accent/10');
+                document.getElementById('tab-rate').classList.remove('text-text-secondary');
+            } else if (view === 'admin') {
+                if (!isAdmin) return;
+                document.getElementById('view-admin').classList.remove('hidden');
+                document.getElementById('nav-tabs').classList.remove('hidden');
+                document.getElementById('tab-admin').classList.add('text-accent', 'bg-accent/10');
+                document.getElementById('tab-admin').classList.remove('text-text-secondary');
+            }
+        }
+
+        function updateNavTabs() {
+            const adminTab = document.getElementById('tab-admin');
+            if (isAdmin) {
+                adminTab.classList.remove('text-text-disabled', 'cursor-not-allowed');
+                adminTab.classList.add('text-text-secondary', 'hover:text-text-primary');
+                adminTab.disabled = false;
+            } else {
+                adminTab.classList.add('text-text-disabled', 'cursor-not-allowed');
+                adminTab.classList.remove('text-text-secondary', 'hover:text-text-primary');
+                adminTab.disabled = true;
+                adminTab.onclick = (e) => { e.preventDefault(); };
+            }
+        }
+
+        // ============ Login ============
+        async function handleLogin() {
+            const phone = document.getElementById('login-phone').value.trim();
+            const errorEl = document.getElementById('login-error');
+            errorEl.classList.add('hidden');
+
+            if (!phone) {
+                errorEl.textContent = 'Please enter your phone number';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    errorEl.textContent = data.error || 'Login failed';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                isAdmin = data.is_admin;
+                // Store name and set greeting with random roast
+                localStorage.setItem('userName', data.name);
+                setUserGreeting(data.name);
+                updateNavTabs();
+                await loadPlayers();
+                showView('rate');
+            } catch (err) {
+                errorEl.textContent = 'Connection error';
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        // ============ Players & Ratings ============
+        async function loadPlayers() {
+            try {
+                const res = await fetch('/api/players');
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        localStorage.removeItem('userName');
+                        showView('login');
+                        return;
+                    }
+                    throw new Error('Failed to load players');
+                }
+
+                // Restore greeting on page refresh
+                const storedName = localStorage.getItem('userName');
+                if (storedName) {
+                    setUserGreeting(storedName);
+                }
+
+                allPlayers = await res.json();
+
+                // Initialize ratings from server data
+                allPlayers.forEach(p => {
+                    if (p.my_skill_rating || p.my_fitness_rating) {
+                        ratings[p.id] = {
+                            skill: p.my_skill_rating || 5,
+                            fitness: p.my_fitness_rating || 'Normal'
+                        };
+                        touched.add(p.id); // Mark as touched if previously rated
+                    }
+                });
+
+                visibleCount = 0;
+                renderPlayers();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderPlayers() {
+            const container = document.getElementById('players-list');
+            const ratingsControls = document.getElementById('ratings-controls');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+
+            // Determine how many to show
+            const toShow = Math.min(visibleCount + BATCH_SIZE, allPlayers.length);
+
+            // Build HTML for visible players as compact roster rows
+            let html = '';
+            for (let i = 0; i < toShow; i++) {
+                const p = allPlayers[i];
+                const r = ratings[p.id];
+                const isActive = touched.has(p.id);
+                const stateClass = isActive ? 'active' : 'dormant';
+
+                // Dormant: show dash, Active: show skill with color
+                let skillDisplay, skillColorClass;
+                if (isActive && r) {
+                    skillDisplay = r.skill;
+                    skillColorClass = getSkillColorClass(r.skill);
+                } else {
+                    skillDisplay = '–';
+                    skillColorClass = 'skill-dormant';
+                }
+
+                // Fitness: dormant = no selection, active = show selection
+                const currentFitness = (isActive && r) ? r.fitness : null;
+
+                html += `
+                    <div class="roster-row ${stateClass}" data-player-id="${p.id}">
+                        <!-- Player name (no tier badge) -->
+                        <div class="min-w-0">
+                            <span class="font-medium text-sm truncate block">${escapeHtml(p.name)}</span>
+                        </div>
+
+                        <!-- Fitness segmented control (center) -->
+                        <div class="fitness-control">
+                            ${FITNESS_OPTIONS.map(f => `
+                                <span
+                                    class="fitness-seg ${currentFitness === f.key ? 'selected' : ''}"
+                                    onclick="setFitness(${p.id}, '${f.key}')"
+                                >${f.label}</span>
+                            `).join('')}
+                        </div>
+
+                        <!-- Skill counter widget (right) -->
+                        <div class="counter-widget">
+                            <button class="counter-btn minus" onclick="adjustSkill(${p.id}, -1)" aria-label="Decrease skill">−</button>
+                            <input
+                                type="text"
+                                class="skill-display ${skillColorClass}"
+                                value="${skillDisplay}"
+                                data-player-id="${p.id}"
+                                onchange="setSkillDirect(${p.id}, this)"
+                                onfocus="this.select()"
+                                readonly
+                            >
+                            <button class="counter-btn plus" onclick="adjustSkill(${p.id}, 1)" aria-label="Increase skill">+</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+            visibleCount = toShow;
+
+            // Always show controls when there are players
+            if (allPlayers.length > 0) {
+                ratingsControls.classList.remove('hidden');
+            }
+
+            // Update load more button state
+            if (visibleCount < allPlayers.length) {
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.textContent = 'Load More';
+                loadMoreBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            } else {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.textContent = 'No more players, invite your friends';
+                loadMoreBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            }
+
+            updateSaveButtonState();
+        }
+
+        // Adjust skill by delta (+1 or -1)
+        function adjustSkill(playerId, delta) {
+            activatePlayer(playerId);
+            const r = ratings[playerId];
+            const newVal = Math.max(1, Math.min(10, r.skill + delta));
+            r.skill = newVal;
+
+            // Update UI
+            const row = document.querySelector(`[data-player-id="${playerId}"]`);
+            if (row) {
+                const input = row.querySelector('.skill-display');
+                if (input) {
+                    input.value = newVal;
+                    // Update color class
+                    input.classList.remove('skill-low', 'skill-mid', 'skill-high', 'skill-dormant');
+                    input.classList.add(getSkillColorClass(newVal));
+                }
+            }
+
+            hasUnsavedChanges = true;
+            updateSaveButtonState();
+        }
+
+        // Set skill directly from input
+        function setSkillDirect(playerId, inputEl) {
+            activatePlayer(playerId);
+            let val = parseInt(inputEl.value);
+
+            // Validate bounds - silently cap at limits
+            if (isNaN(val) || val < 1 || val > 10) {
+                val = Math.max(1, Math.min(10, val || ratings[playerId].skill));
+                inputEl.value = val;
+            }
+
+            ratings[playerId].skill = val;
+            // Update color class
+            inputEl.classList.remove('skill-low', 'skill-mid', 'skill-high', 'skill-dormant');
+            inputEl.classList.add(getSkillColorClass(val));
+
+            hasUnsavedChanges = true;
+            updateSaveButtonState();
+        }
+
+        // Set fitness category
+        function setFitness(playerId, fitness) {
+            activatePlayer(playerId);
+            ratings[playerId].fitness = fitness;
+
+            // Update UI - toggle selected class
+            const row = document.querySelector(`[data-player-id="${playerId}"]`);
+            if (row) {
+                row.querySelectorAll('.fitness-seg').forEach((opt, idx) => {
+                    if (FITNESS_OPTIONS[idx].key === fitness) {
+                        opt.classList.add('selected');
+                    } else {
+                        opt.classList.remove('selected');
+                    }
+                });
+            }
+
+            hasUnsavedChanges = true;
+            updateSaveButtonState();
+        }
+
+        // Activate a dormant player row
+        function activatePlayer(playerId) {
+            if (!ratings[playerId]) {
+                ratings[playerId] = { skill: 5, fitness: 'Normal' };
+            }
+
+            if (!touched.has(playerId)) {
+                touched.add(playerId);
+                // Update row styling
+                const row = document.querySelector(`[data-player-id="${playerId}"]`);
+                if (row) {
+                    row.classList.remove('dormant');
+                    row.classList.add('active');
+                    // Update skill display from dash to number
+                    const input = row.querySelector('.skill-display');
+                    if (input) {
+                        input.value = ratings[playerId].skill;
+                        input.classList.remove('skill-dormant');
+                        input.classList.add(getSkillColorClass(ratings[playerId].skill));
+                    }
+                }
+            }
+        }
+
+        function updateRating(playerId, type, value) {
+            // Legacy function - redirect to new functions
+            if (type === 'skill') {
+                activatePlayer(playerId);
+                ratings[playerId].skill = parseInt(value);
+            } else {
+                setFitness(playerId, value);
+            }
+            hasUnsavedChanges = true;
+            updateSaveButtonState();
+        }
+
+        // Update save button visual state based on unsaved changes
+        function updateSaveButtonState() {
+            const btn = document.getElementById('save-btn');
+            if (hasUnsavedChanges) {
+                btn.classList.remove('save-btn-inactive');
+                btn.classList.add('save-btn-active');
+            } else {
+                btn.classList.remove('save-btn-active');
+                btn.classList.add('save-btn-inactive');
+            }
+        }
+
+        async function loadMorePlayers() {
+            // Save current ratings first
+            await saveRatings();
+
+            // Then render more players
+            renderPlayers();
+        }
+
+        async function saveRatingsManually() {
+            if (!hasUnsavedChanges) return;
+
+            const btn = document.getElementById('save-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+
+            await saveRatings();
+
+            btn.textContent = 'Saved!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                updateSaveButtonState();
+            }, 1500);
+        }
+
+        async function saveRatings() {
+            // Build batch of ratings for visible players
+            const batch = [];
+            for (let i = 0; i < visibleCount; i++) {
+                const p = allPlayers[i];
+                const r = ratings[p.id];
+                if (r) {
+                    batch.push({
+                        target_id: p.id,
+                        skill_rating: r.skill,
+                        fitness_category: r.fitness
+                    });
+                }
+            }
+
+            if (batch.length === 0) return;
+
+            try {
+                const res = await fetch('/api/ratings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(batch)
+                });
+
+                if (res.ok) {
+                    hasUnsavedChanges = false;
+                    updateSaveButtonState();
+                }
+            } catch (err) {
+                console.error('Failed to save ratings:', err);
+            }
+        }
+
+        // ============ Admin: Upload ============
+        let isUploadInProgress = false;
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('active');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('active');
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('active');
+            const file = e.dataTransfer.files[0];
+            if (file) uploadFile(file);
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            if (isUploadInProgress) return;
+
+            if (!file.name.endsWith('.zip')) {
+                showUploadError('Please upload a .zip file');
+                return;
+            }
+
+            isUploadInProgress = true;
+            const dropZone = document.getElementById('drop-zone');
+            dropZone.style.pointerEvents = 'none';
+            dropZone.style.opacity = '0.5';
+            document.getElementById('upload-loader').classList.remove('hidden');
+            document.getElementById('upload-error').classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('chat_file', file);
+
+            try {
+                const res = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showUploadError(data.error || 'Upload failed');
+                    return;
+                }
+
+                // Store parsed players for later
+                parsedPlayers = data.players;
+
+                // Check if there are unresolved players
+                if (data.unresolved && data.unresolved.length > 0) {
+                    // Show "Who Are They?" screen
+                    unresolvedPlayers = data.unresolved;
+                    registeredPlayers = data.registered_players || [];
+                    cameFromResolveStep = false; // Will be set to true after resolve step completes
+                    showResolveStep();
+                } else {
+                    // No unresolved - go directly to edit step
+                    cameFromResolveStep = false; // No resolve step was shown
+                    showEditStep(data.players);
+                }
+            } catch (err) {
+                showUploadError('Connection error');
+            } finally {
+                isUploadInProgress = false;
+                dropZone.style.pointerEvents = '';
+                dropZone.style.opacity = '';
+                document.getElementById('upload-loader').classList.add('hidden');
+            }
+        }
+
+        // Mock upload response for testing
+        function mockUploadResponse() {
+            const mockPlayers = [
+                { id: 1, name: 'דן' },           // recognized
+                { id: 2, name: 'עומר' },         // recognized
+                { id: -1, name: 'חבר דין' },     // unrecognized (friend)
+                { id: 3, name: 'ניב' },          // recognized
+                { id: -1, name: 'יוסי' },        // unrecognized
+                { id: 4, name: 'משה' },          // recognized
+                { id: 5, name: 'אבי' },          // recognized
+                { id: -1, name: 'Guest Player' }, // unrecognized
+                { id: 6, name: 'רועי' },         // recognized
+                { id: 7, name: 'גיל' },          // recognized
+                { id: -1, name: 'דוד' },         // unrecognized
+                { id: 8, name: 'אלון' }          // recognized
+            ];
+
+            // Build unresolved list from players with id = -1
+            const unresolved = mockPlayers
+                .map((p, i) => ({ name: p.name, index: i }))
+                .filter((_, i) => mockPlayers[i].id === -1);
+
+            // Mock registered players list
+            const mockRegistered = [
+                { id: 1, name: 'דן' },
+                { id: 2, name: 'עומר' },
+                { id: 3, name: 'ניב' },
+                { id: 4, name: 'משה' },
+                { id: 5, name: 'אבי' },
+                { id: 6, name: 'רועי' },
+                { id: 7, name: 'גיל' },
+                { id: 8, name: 'אלון' },
+                { id: 9, name: 'יוסי ג' },
+                { id: 10, name: 'דוד מ' }
+            ];
+
+            parsedPlayers = mockPlayers;
+
+            if (unresolved.length > 0) {
+                unresolvedPlayers = unresolved;
+                registeredPlayers = mockRegistered;
+                cameFromResolveStep = false; // Will be set to true after resolve step completes
+                showResolveStep();
+            } else {
+                cameFromResolveStep = false;
+                showEditStep(mockPlayers);
+            }
+        }
+
+        // Start manually - bypass upload and go directly to Review Players with empty slots
+        function startManually() {
+            const emptyPlayers = Array(12).fill(null).map(() => ({ id: 0, name: '' }));
+            cameFromResolveStep = false; // No resolve step when starting manually
+            showEditStep(emptyPlayers);
+        }
+
+        function showUploadError(msg) {
+            const el = document.getElementById('upload-error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        // ============ Admin: Resolve Aliases ("Who Are They?") ============
+        function showResolveStep() {
+            document.getElementById('admin-step-upload').classList.add('hidden');
+            document.getElementById('admin-step-resolve').classList.remove('hidden');
+
+            const container = document.getElementById('unresolved-mappings');
+            let html = '';
+
+            unresolvedPlayers.forEach((u, i) => {
+                html += `
+                    <div class="mapping-card" data-index="${u.index}">
+                        <span class="unresolved-name">${escapeHtml(u.name)}</span>
+                        <span class="mapping-arrow">→</span>
+                        <select class="mapping-select" data-unresolved-name="${escapeHtml(u.name)}" data-original-index="${u.index}">
+                            <option value="-1">Guest</option>
+                            ${registeredPlayers.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function goBackToUploadFromResolve() {
+            document.getElementById('admin-step-resolve').classList.add('hidden');
+            document.getElementById('admin-step-upload').classList.remove('hidden');
+            document.getElementById('file-input').value = '';
+            document.getElementById('upload-error').classList.add('hidden');
+            // Clear state
+            unresolvedPlayers = [];
+            registeredPlayers = [];
+            parsedPlayers = [];
+        }
+
+        async function saveAndContinueResolve() {
+            const selects = document.querySelectorAll('#unresolved-mappings .mapping-select');
+            const mappings = [];
+
+            selects.forEach(select => {
+                mappings.push({
+                    unresolved_name: select.dataset.unresolvedName,
+                    player_id: parseInt(select.value),
+                    index: parseInt(select.dataset.originalIndex)
+                });
+            });
+
+            // Show loader
+            document.getElementById('resolve-loader').classList.remove('hidden');
+            document.getElementById('resolve-error').classList.add('hidden');
+            document.getElementById('resolve-continue-btn').disabled = true;
+
+            try {
+                const res = await fetch('/api/admin/resolve-aliases', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mappings })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showResolveError(data.error || 'Failed to save aliases');
+                    return;
+                }
+
+                // Update parsedPlayers with resolved mappings
+                // For each mapping, update the corresponding player in parsedPlayers
+                data.players.forEach((resolvedPlayer, i) => {
+                    const originalIndex = mappings[i].index;
+                    parsedPlayers[originalIndex] = {
+                        id: resolvedPlayer.id,
+                        name: resolvedPlayer.name
+                    };
+                });
+
+                // Hide resolve step and show edit step
+                document.getElementById('admin-step-resolve').classList.add('hidden');
+                cameFromResolveStep = true; // Track that we came from resolve step for back navigation
+                showEditStep(parsedPlayers);
+
+            } catch (err) {
+                showResolveError('Connection error');
+            } finally {
+                document.getElementById('resolve-loader').classList.add('hidden');
+                document.getElementById('resolve-continue-btn').disabled = false;
+            }
+        }
+
+        function showResolveError(msg) {
+            const el = document.getElementById('resolve-error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        // ============ Admin: Edit Players ============
+        // Store original players data for reset
+        let originalPlayersData = [];
+
+        function showEditStep(players) {
+            document.getElementById('admin-step-upload').classList.add('hidden');
+            document.getElementById('admin-step-resolve').classList.add('hidden');
+            document.getElementById('admin-step-edit').classList.remove('hidden');
+
+            // Store original data for reset
+            originalPlayersData = players.map(p => ({ ...p }));
+
+            const container = document.getElementById('player-inputs');
+            const considerFitness = document.getElementById('consider-fitness').checked;
+            let html = '';
+
+            // Fill with players (up to 12) - uniform single-line layout
+            for (let i = 0; i < 12; i++) {
+                const p = players[i];
+                const name = p ? p.name : '';
+                const id = p ? p.id : 0;
+                const isUnrecognized = !id || id <= 0;
+
+                html += `
+                    <div class="player-input-card" data-index="${i}" data-unrecognized="${isUnrecognized}">
+                        <div class="player-name-container">
+                            <input
+                                type="text"
+                                class="player-input player-input-field"
+                                value="${escapeHtml(name)}"
+                                data-id="${id}"
+                                data-original-id="${id}"
+                                data-original-name="${escapeHtml(name)}"
+                                placeholder="Player ${i + 1}"
+                                oninput="handlePlayerNameChange(${i})"
+                            >
+                        </div>
+                        ${isUnrecognized ? renderInlineControls(i, 5, 2, considerFitness) : ''}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+            validatePlayerInputs();
+        }
+
+        function renderInlineControls(index, skill = 5, fitness = 2, showFitness = true) {
+            const skillColor = getSkillColorClass(skill);
+            const fitnessHtml = showFitness ? `
+                <div class="fitness-control-compact">
+                    <div class="fitness-seg-compact${fitness === 1 ? ' active' : ''}" data-fitness="1" onclick="setUnrecognizedFitness(${index}, this)">Poor</div>
+                    <div class="fitness-seg-compact${fitness === 2 ? ' active' : ''}" data-fitness="2" onclick="setUnrecognizedFitness(${index}, this)">Fine</div>
+                    <div class="fitness-seg-compact${fitness === 3 ? ' active' : ''}" data-fitness="3" onclick="setUnrecognizedFitness(${index}, this)">Good</div>
+                </div>
+            ` : '';
+            return `
+                <div class="inline-controls">
+                    ${fitnessHtml}
+                    <div class="counter-widget">
+                        <button type="button" class="counter-btn minus" onclick="adjustUnrecognizedSkill(${index}, -1)">−</button>
+                        <input type="text" class="skill-display ${skillColor}" value="${skill}" data-index="${index}" readonly>
+                        <button type="button" class="counter-btn plus" onclick="adjustUnrecognizedSkill(${index}, 1)">+</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function adjustUnrecognizedSkill(index, delta) {
+            const card = document.querySelector(`.player-input-card[data-index="${index}"]`);
+            const input = card.querySelector('.skill-display');
+            let val = parseInt(input.value) + delta;
+            val = Math.max(1, Math.min(10, val));
+            input.value = val;
+            input.classList.remove('skill-low', 'skill-mid', 'skill-high');
+            input.classList.add(getSkillColorClass(val));
+        }
+
+        function setUnrecognizedFitness(index, clickedEl) {
+            const card = document.querySelector(`.player-input-card[data-index="${index}"]`);
+            card.querySelectorAll('.fitness-seg-compact').forEach(seg => {
+                seg.classList.remove('active');
+            });
+            clickedEl.classList.add('active');
+            // Store fitness value in card for state retention when toggling
+            card.dataset.fitness = clickedEl.dataset.fitness;
+        }
+
+        function handlePlayerNameChange(index) {
+            const card = document.querySelector(`.player-input-card[data-index="${index}"]`);
+            const input = card.querySelector('.player-input');
+            const currentName = input.value.trim();
+            const originalName = input.dataset.originalName;
+            const originalId = parseInt(input.dataset.originalId) || 0;
+
+            // Check if name changed from a recognized player
+            const wasRecognized = originalId > 0;
+            const nameChanged = currentName !== originalName;
+            const shouldBeUnrecognized = !wasRecognized || nameChanged;
+
+            // Update card state
+            const hasControls = card.querySelector('.inline-controls');
+            const considerFitness = document.getElementById('consider-fitness').checked;
+
+            if (shouldBeUnrecognized && !hasControls) {
+                // Add unrecognized state
+                card.dataset.unrecognized = 'true';
+                card.insertAdjacentHTML('beforeend', renderInlineControls(index, 5, 2, considerFitness));
+            } else if (!shouldBeUnrecognized && hasControls) {
+                // Remove unrecognized state (name reverted to original recognized player)
+                card.dataset.unrecognized = 'false';
+                hasControls.remove();
+            }
+
+            validatePlayerInputs();
+        }
+
+        // Toggle fitness switch - dynamically show/hide fitness controls for unrecognized players
+        function toggleFitness() {
+            const toggle = document.getElementById('fitness-toggle');
+            const checkbox = document.getElementById('consider-fitness');
+            const isActive = toggle.classList.contains('active');
+
+            if (isActive) {
+                toggle.classList.remove('active');
+                toggle.setAttribute('aria-checked', 'false');
+                checkbox.checked = false;
+            } else {
+                toggle.classList.add('active');
+                toggle.setAttribute('aria-checked', 'true');
+                checkbox.checked = true;
+            }
+
+            // Update fitness control visibility for all unrecognized player cards
+            const showFitness = checkbox.checked;
+            document.querySelectorAll('.player-input-card[data-unrecognized="true"]').forEach(card => {
+                const fitnessControl = card.querySelector('.fitness-control-compact');
+                if (showFitness && !fitnessControl) {
+                    // Add fitness control - get current fitness value from data or default to 2
+                    const inlineControls = card.querySelector('.inline-controls');
+                    if (inlineControls) {
+                        const existingFitness = parseInt(card.dataset.fitness) || 2;
+                        const fitnessHtml = `
+                            <div class="fitness-control-compact">
+                                <div class="fitness-seg-compact${existingFitness === 1 ? ' active' : ''}" data-fitness="1" onclick="setUnrecognizedFitness(${card.dataset.index}, this)">Poor</div>
+                                <div class="fitness-seg-compact${existingFitness === 2 ? ' active' : ''}" data-fitness="2" onclick="setUnrecognizedFitness(${card.dataset.index}, this)">Fine</div>
+                                <div class="fitness-seg-compact${existingFitness === 3 ? ' active' : ''}" data-fitness="3" onclick="setUnrecognizedFitness(${card.dataset.index}, this)">Good</div>
+                            </div>
+                        `;
+                        inlineControls.insertAdjacentHTML('afterbegin', fitnessHtml);
+                    }
+                } else if (!showFitness && fitnessControl) {
+                    // Store current fitness value before hiding
+                    const activeSeg = fitnessControl.querySelector('.fitness-seg-compact.active');
+                    if (activeSeg) {
+                        card.dataset.fitness = activeSeg.dataset.fitness;
+                    }
+                    fitnessControl.remove();
+                }
+            });
+        }
+
+        function validatePlayerInputs() {
+            const inputs = document.querySelectorAll('.player-input');
+            let validCount = 0;
+
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                if (val.length >= 2) {
+                    validCount++;
+                    input.classList.remove('border-red-500');
+                } else if (val.length > 0) {
+                    input.classList.add('border-red-500');
+                } else {
+                    input.classList.remove('border-red-500');
+                }
+            });
+
+            const btn = document.getElementById('generate-btn');
+            btn.disabled = validCount !== 12;
+        }
+
+        // ============ Admin: Generate Teams ============
+        async function generateTeams() {
+            const cards = document.querySelectorAll('.player-input-card');
+            const players = [];
+
+            cards.forEach((card, index) => {
+                const input = card.querySelector('.player-input');
+                const name = input.value.trim();
+                const originalId = parseInt(input.dataset.originalId) || 0;
+                const originalName = input.dataset.originalName || '';
+
+                // Check if this is a recognized player with unchanged name
+                if (originalId > 0 && name === originalName) {
+                    // Name unchanged, use original ID
+                    players.push({ id: originalId });
+                } else {
+                    // Name changed or originally unrecognized - include skill/fitness if available
+                    const playerData = { name };
+
+                    // Get skill from counter widget
+                    const skillInput = card.querySelector('.inline-controls .skill-display');
+                    if (skillInput) {
+                        playerData.skill = parseInt(skillInput.value);
+                    }
+
+                    // Get fitness from active compact segment
+                    const activeFitness = card.querySelector('.fitness-seg-compact.active');
+                    if (activeFitness) {
+                        playerData.fitness = parseInt(activeFitness.dataset.fitness);
+                    }
+
+                    players.push(playerData);
+                }
+            });
+
+            setGenerateFormDisabled(true);
+            document.getElementById('generate-loader').classList.remove('hidden');
+            document.getElementById('generate-error').classList.add('hidden');
+
+            try {
+                const considerFitness = document.getElementById('consider-fitness').checked;
+                const res = await fetch('/api/admin/generate-teams', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ players, consider_fitness: considerFitness })
+                });
+
+                const data = await res.json();
+                document.getElementById('generate-loader').classList.add('hidden');
+
+                if (!res.ok) {
+                    showGenerateError(data.error || 'Generation failed');
+                    setGenerateFormDisabled(false);
+                    return;
+                }
+
+                showTeamsStep(data);
+            } catch (err) {
+                document.getElementById('generate-loader').classList.add('hidden');
+                showGenerateError('Connection error');
+                setGenerateFormDisabled(false);
+            }
+        }
+
+        function setGenerateFormDisabled(disabled) {
+            document.getElementById('generate-btn').disabled = disabled;
+            document.getElementById('consider-fitness').disabled = disabled;
+            document.getElementById('reset-changes-btn').disabled = disabled;
+            document.querySelectorAll('.player-input').forEach(input => input.disabled = disabled);
+        }
+
+        function showGenerateError(msg) {
+            const el = document.getElementById('generate-error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        // ============ Admin: Teams Display ============
+        function showTeamsStep(data) {
+            document.getElementById('admin-step-edit').classList.add('hidden');
+            document.getElementById('admin-step-teams').classList.remove('hidden');
+
+            // Store teams with skills for swapping calculations
+            whiteTeam = data.home.players.map(p => ({ name: p.name, skill: p.base_skill_rating, fitness: p.base_fitness_rating }));
+            blueTeam = data.away.players.map(p => ({ name: p.name, skill: p.base_skill_rating, fitness: p.base_fitness_rating }));
+            teamSkills = {
+                white: data.home.total_skill,
+                blue: data.away.total_skill
+            };
+
+            renderTeams();
+        }
+
+        function renderTeams() {
+            const whiteContainer = document.getElementById('white-team');
+            const blueContainer = document.getElementById('blue-team');
+
+            whiteContainer.innerHTML = whiteTeam.map((p, i) => `
+                <div
+                    class="player-card white-team-card px-3 py-2 rounded-lg mb-2 cursor-move transition-all flex items-center gap-2"
+                    draggable="true"
+                    data-team="white"
+                    data-index="${i}"
+                    ondragstart="dragStart(event, 'white', ${i})"
+                    ondragend="dragEnd(event)"
+                    ondragover="allowDropOnPlayer(event)"
+                    ondragleave="dragLeavePlayer(event)"
+                    ondrop="dropOnPlayer(event, 'white', ${i})"
+                >
+                    <span class="flex-1">${escapeHtml(p.name)}</span>
+                    <span class="drag-handle" data-team="white" data-index="${i}">⋮⋮</span>
+                </div>
+            `).join('');
+
+            blueContainer.innerHTML = blueTeam.map((p, i) => `
+                <div
+                    class="player-card blue-team-card px-3 py-2 rounded-lg mb-2 cursor-move transition-all flex items-center gap-2"
+                    draggable="true"
+                    data-team="blue"
+                    data-index="${i}"
+                    ondragstart="dragStart(event, 'blue', ${i})"
+                    ondragend="dragEnd(event)"
+                    ondragover="allowDropOnPlayer(event)"
+                    ondragleave="dragLeavePlayer(event)"
+                    ondrop="dropOnPlayer(event, 'blue', ${i})"
+                >
+                    <span class="flex-1">${escapeHtml(p.name)}</span>
+                    <span class="drag-handle" data-team="blue" data-index="${i}">⋮⋮</span>
+                </div>
+            `).join('');
+
+            // Initialize touch drag handlers for mobile
+            initTouchDrag();
+
+            updateTeamStats();
+        }
+
+        function updateTeamStats() {
+            const whiteSkill = whiteTeam.reduce((sum, p) => sum + p.skill, 0);
+            const blueSkill = blueTeam.reduce((sum, p) => sum + p.skill, 0);
+            const delta = Math.abs(whiteSkill - blueSkill).toFixed(1);
+
+            document.getElementById('team-stats').innerHTML = `
+                Skill Balance: White ${whiteSkill.toFixed(1)} vs Blue ${blueSkill.toFixed(1)}
+                <span class="text-accent">(Δ ${delta})</span>
+            `;
+        }
+
+        // ============ Drag & Drop ============
+        let dragData = null;
+
+        function dragStart(e, team, index) {
+            dragData = { team, index };
+            e.target.classList.add('dragging');
+        }
+
+        function dragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        function allowDropOnPlayer(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Only highlight the specific card being hovered
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function dragLeavePlayer(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function dropOnPlayer(e, targetTeam, targetIndex) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.remove('drag-over');
+
+            if (!dragData) return;
+            const { team: sourceTeam, index: sourceIndex } = dragData;
+
+            // Skip if dropping on self
+            if (sourceTeam === targetTeam && sourceIndex === targetIndex) {
+                dragData = null;
+                return;
+            }
+
+            const sourceArr = sourceTeam === 'white' ? whiteTeam : blueTeam;
+            const targetArr = targetTeam === 'white' ? whiteTeam : blueTeam;
+
+            // Swap the two players
+            const playerToMove = sourceArr[sourceIndex];
+            const playerToSwap = targetArr[targetIndex];
+
+            sourceArr[sourceIndex] = playerToSwap;
+            targetArr[targetIndex] = playerToMove;
+
+            dragData = null;
+            renderTeams();
+        }
+
+        // ============ Touch Drag for Mobile ============
+        let touchDragData = null;
+        let touchDragElement = null;
+        let touchDragGhost = null;
+        let touchStartY = 0;
+        let touchOffsetY = 0;
+
+        function initTouchDrag() {
+            document.querySelectorAll('.drag-handle').forEach(handle => {
+                handle.addEventListener('touchstart', handleTouchStart, { passive: false });
+            });
+        }
+
+        function handleTouchStart(e) {
+            const handle = e.currentTarget;
+            const team = handle.dataset.team;
+            const index = parseInt(handle.dataset.index);
+
+            touchDragData = { team, index };
+            touchDragElement = handle.closest('.player-card');
+
+            const touch = e.touches[0];
+            const rect = touchDragElement.getBoundingClientRect();
+            touchStartY = touch.clientY;
+            touchOffsetY = touch.clientY - rect.top;
+
+            // Create ghost element
+            touchDragGhost = touchDragElement.cloneNode(true);
+            touchDragGhost.classList.add('touch-drag-ghost');
+            touchDragGhost.style.width = rect.width + 'px';
+            touchDragGhost.style.left = rect.left + 'px';
+            touchDragGhost.style.top = rect.top + 'px';
+            document.body.appendChild(touchDragGhost);
+
+            // Hide original element visually
+            touchDragElement.style.opacity = '0.3';
+
+            e.preventDefault(); // Only prevent default when touching the handle
+
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function handleTouchMove(e) {
+            if (!touchDragData || !touchDragElement || !touchDragGhost) return;
+
+            e.preventDefault();
+
+            const touch = e.touches[0];
+
+            // Move ghost to follow finger
+            touchDragGhost.style.top = (touch.clientY - touchOffsetY) + 'px';
+
+            // Temporarily hide ghost to find element underneath
+            touchDragGhost.style.display = 'none';
+            const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+            touchDragGhost.style.display = '';
+
+            // Clear previous highlights
+            document.querySelectorAll('.player-card.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+
+            // Find the player card under the touch point
+            if (elementUnderTouch) {
+                const targetCard = elementUnderTouch.closest('.player-card');
+                if (targetCard && targetCard !== touchDragElement) {
+                    targetCard.classList.add('drag-over');
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+
+            if (!touchDragData || !touchDragElement) return;
+
+            // Remove ghost
+            if (touchDragGhost) {
+                touchDragGhost.remove();
+                touchDragGhost = null;
+            }
+
+            // Restore original element visibility
+            touchDragElement.style.opacity = '';
+
+            // Find the element under the last touch point
+            const touch = e.changedTouches[0];
+            const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+
+            // Clear all highlights
+            document.querySelectorAll('.player-card.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+
+            if (elementUnderTouch) {
+                const targetCard = elementUnderTouch.closest('.player-card');
+                if (targetCard && targetCard !== touchDragElement) {
+                    const targetTeam = targetCard.dataset.team;
+                    const targetIndex = parseInt(targetCard.dataset.index);
+
+                    // Perform the swap
+                    const sourceArr = touchDragData.team === 'white' ? whiteTeam : blueTeam;
+                    const targetArr = targetTeam === 'white' ? whiteTeam : blueTeam;
+
+                    const playerToMove = sourceArr[touchDragData.index];
+                    const playerToSwap = targetArr[targetIndex];
+
+                    sourceArr[touchDragData.index] = playerToSwap;
+                    targetArr[targetIndex] = playerToMove;
+
+                    renderTeams();
+                }
+            }
+
+            touchDragData = null;
+            touchDragElement = null;
+        }
+
+        // ============ Regenerate Teams ============
+        async function regenerateTeams() {
+            // Collect current player inputs from the edit step
+            const inputs = document.querySelectorAll('.player-input');
+            const players = [];
+
+            inputs.forEach(input => {
+                const name = input.value.trim();
+                const originalId = parseInt(input.dataset.id);
+                const originalName = input.dataset.originalName || '';
+
+                if (originalId > 0 && name === originalName) {
+                    players.push({ id: originalId });
+                } else {
+                    players.push({ name });
+                }
+            });
+
+            // Show loading state
+            const regenerateBtn = document.querySelector('[onclick="regenerateTeams()"]');
+            const originalText = regenerateBtn.textContent;
+            regenerateBtn.textContent = 'Shuffling...';
+            regenerateBtn.disabled = true;
+
+            try {
+                const considerFitness = document.getElementById('consider-fitness').checked;
+                const res = await fetch('/api/admin/generate-teams', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ players, consider_fitness: considerFitness })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showToast(data.error || 'Regeneration failed');
+                    return;
+                }
+
+                // Update teams with new data
+                whiteTeam = data.home.players.map(p => ({ name: p.name, skill: p.base_skill_rating, fitness: p.base_fitness_rating }));
+                blueTeam = data.away.players.map(p => ({ name: p.name, skill: p.base_skill_rating, fitness: p.base_fitness_rating }));
+                teamSkills = {
+                    white: data.home.total_skill,
+                    blue: data.away.total_skill
+                };
+
+                renderTeams();
+                showToast('Teams regenerated');
+            } catch (err) {
+                showToast('Connection error');
+            } finally {
+                regenerateBtn.textContent = originalText;
+                regenerateBtn.disabled = false;
+            }
+        }
+
+        // ============ Copy to Clipboard ============
+        function copyToClipboard() {
+            const whiteNames = whiteTeam.map(p => p.name).join('\n');
+            const blueNames = blueTeam.map(p => p.name).join('\n');
+
+            const text = `⚪ White:\n${whiteNames}\n\n🔵 Blue:\n${blueNames}`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard');
+            });
+        }
+
+        // ============ Share Match Image ============
+        let isShareInProgress = false; // Prevent duplicate share triggers
+
+        async function shareMatchImage() {
+            // Prevent duplicate triggers
+            if (isShareInProgress) return;
+            isShareInProgress = true;
+
+            const btn = document.querySelector('[onclick="shareMatchImage()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="btn-spinner"></span>';
+            btn.disabled = true;
+
+            try {
+                const blob = await generateMatchImage();
+                const file = new File([blob], 'match-lineup.png', { type: 'image/png' });
+
+                // Try Web Share API first (single file only)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file]
+                    });
+                    showToast('Shared successfully');
+                } else {
+                    // Fallback: download the image
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'match-lineup.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showToast('Image downloaded');
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    showToast('Failed to share');
+                    console.error('Share error:', err);
+                }
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                isShareInProgress = false;
+            }
+        }
+
+        // Generate match lineup image using canvas
+        async function generateMatchImage() {
+            const canvas = document.getElementById('share-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Landscape canvas matching stadium asset ratio (16:9 widescreen)
+            const width = 1920;
+            const height = 1080;
+            canvas.width = width;
+            canvas.height = height;
+
+            // Maximum column dimensions - dominate the frame
+            const colWidth = 700;
+            const colGap = 30;
+            const totalColumnsWidth = colWidth * 2 + colGap;
+            const leftColX = (width - totalColumnsWidth) / 2;
+            const rightColX = leftColX + colWidth + colGap;
+
+            // Calculate column height with maximized rows
+            const headerHeight = 100;
+            const playerHeight = 75;
+            const columnContentHeight = headerHeight + (6 * playerHeight) + 50;
+
+            // Center columns vertically
+            const titleSpace = 100;
+            const columnsStartY = titleSpace + (height - titleSpace - 70 - columnContentHeight) / 2;
+            const titleY = columnsStartY - 35;
+
+            // Load background image - no cropping, exact fit
+            try {
+                const bgImg = new Image();
+                bgImg.crossOrigin = 'anonymous';
+                await new Promise((resolve, reject) => {
+                    bgImg.onload = resolve;
+                    bgImg.onerror = reject;
+                    bgImg.src = '/assets/match-field-bg.png';
+                });
+
+                ctx.drawImage(bgImg, 0, 0, width, height);
+            } catch (e) {
+                // Fallback: premium dark gradient
+                const gradient = ctx.createLinearGradient(0, 0, 0, height);
+                gradient.addColorStop(0, '#1a472a');
+                gradient.addColorStop(0.5, '#0d3320');
+                gradient.addColorStop(1, '#061a10');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+
+                // Field markings
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(width/2, height/2, 100, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(width/2, 80);
+                ctx.lineTo(width/2, height - 80);
+                ctx.stroke();
+            }
+
+            // Subtle dark overlay for text contrast
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Title - larger and bolder
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 3;
+            ctx.fillText('Match Lineup', width/2, titleY);
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+
+            // White Team column
+            drawTeamColumnFrosted(ctx, leftColX, columnsStartY, colWidth, 'White', whiteTeam,
+                '#FFFFFF', 'rgba(255,255,255,0.15)');
+
+            // Blue Team column
+            drawTeamColumnFrosted(ctx, rightColX, columnsStartY, colWidth, 'Blue', blueTeam,
+                '#0A84FF', 'rgba(10,132,255,0.2)');
+
+            // Watermark - bottom left with 40px padding
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.font = '600 32px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 10;
+            ctx.fillText('Friends Football ⚽️👨🏾‍🤝‍👨🏽', 40, height - 40);
+            ctx.shadowBlur = 0;
+
+            return new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/png', 1.0);
+            });
+        }
+
+        // Helper: draw a team column with frosted glass effect
+        function drawTeamColumnFrosted(ctx, x, y, colWidth, title, players, accentColor, accentBgColor) {
+            const headerHeight = 90;
+            const playerHeight = 80;
+            const totalHeight = headerHeight + (players.length * playerHeight) + 40;
+            const cornerRadius = 24;
+
+            // Frosted dark glass background
+            ctx.fillStyle = 'rgba(13, 13, 13, 0.6)';
+            roundRect(ctx, x, y, colWidth, totalHeight, cornerRadius);
+            ctx.fill();
+
+            // Accent border
+            ctx.strokeStyle = accentBgColor;
+            ctx.lineWidth = 4;
+            roundRect(ctx, x, y, colWidth, totalHeight, cornerRadius);
+            ctx.stroke();
+
+            // Header background accent
+            ctx.fillStyle = accentBgColor;
+            ctx.beginPath();
+            ctx.moveTo(x + cornerRadius, y);
+            ctx.lineTo(x + colWidth - cornerRadius, y);
+            ctx.quadraticCurveTo(x + colWidth, y, x + colWidth, y + cornerRadius);
+            ctx.lineTo(x + colWidth, y + headerHeight);
+            ctx.lineTo(x, y + headerHeight);
+            ctx.lineTo(x, y + cornerRadius);
+            ctx.quadraticCurveTo(x, y, x + cornerRadius, y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Header title (centered) - larger and bolder
+            ctx.fillStyle = accentColor;
+            ctx.font = 'bold 48px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(title, x + colWidth/2, y + 60);
+
+            // Player names (centered) - larger and semi-bold
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '600 38px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+
+            players.forEach((p, i) => {
+                const playerY = y + headerHeight + 25 + (i * playerHeight);
+                if (i > 0) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                    ctx.fillRect(x + 30, playerY - 10, colWidth - 60, 1);
+                }
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(p.name, x + colWidth/2, playerY + 35);
+            });
+        }
+
+        // Helper: draw rounded rectangle path
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+
+        // ============ Reset ============
+        function resetUpload() {
+            document.getElementById('admin-step-upload').classList.remove('hidden');
+            document.getElementById('admin-step-resolve').classList.add('hidden');
+            document.getElementById('admin-step-edit').classList.add('hidden');
+            document.getElementById('admin-step-teams').classList.add('hidden');
+            document.getElementById('file-input').value = '';
+            document.getElementById('upload-error').classList.add('hidden');
+            document.getElementById('generate-btn').disabled = true;
+            // Clear resolve state
+            unresolvedPlayers = [];
+            registeredPlayers = [];
+            parsedPlayers = [];
+        }
+
+        function resetPlayerChanges() {
+            // Re-render the entire edit step with original data
+            if (originalPlayersData.length > 0) {
+                showEditStep(originalPlayersData);
+            }
+        }
+
+        function goBackToUpload() {
+            // If we came from the resolve step, go back there instead of all the way to upload
+            if (cameFromResolveStep) {
+                document.getElementById('admin-step-edit').classList.add('hidden');
+                document.getElementById('admin-step-resolve').classList.remove('hidden');
+                cameFromResolveStep = false; // Reset for next navigation
+                return;
+            }
+
+            // Otherwise, go all the way back to upload
+            document.getElementById('admin-step-upload').classList.remove('hidden');
+            document.getElementById('admin-step-resolve').classList.add('hidden');
+            document.getElementById('admin-step-edit').classList.add('hidden');
+            document.getElementById('file-input').value = '';
+            document.getElementById('upload-error').classList.add('hidden');
+            // Clear resolve state
+            unresolvedPlayers = [];
+            registeredPlayers = [];
+            parsedPlayers = [];
+        }
+
+        function goBackToReview() {
+            document.getElementById('admin-step-edit').classList.remove('hidden');
+            document.getElementById('admin-step-teams').classList.add('hidden');
+            setGenerateFormDisabled(false);
+        }
+
+        // ============ Utilities ============
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============ Init ============
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/players');
+                if (res.ok) {
+                    // Already authenticated, load players and show rate view
+                    allPlayers = await res.json();
+                    allPlayers.forEach(p => {
+                        if (p.my_skill_rating || p.my_fitness_rating) {
+                            ratings[p.id] = {
+                                skill: p.my_skill_rating || 5,
+                                fitness: p.my_fitness_rating || 'Normal'
+                            };
+                            touched.add(p.id); // Mark as touched if previously rated
+                        }
+                    });
+                    visibleCount = 0;
+                    renderPlayers();
+
+                    // Restore greeting on page refresh
+                    const storedName = localStorage.getItem('userName');
+                    if (storedName) {
+                        setUserGreeting(storedName);
+                    }
+
+                    // Check admin status via lightweight HEAD request to admin endpoint
+                    try {
+                        const adminRes = await fetch('/api/admin/upload', { method: 'HEAD' });
+                        // 403 = not admin, 405 = admin (method not allowed but authorized)
+                        isAdmin = adminRes.status !== 403;
+                    } catch {
+                        isAdmin = false;
+                    }
+
+                    updateNavTabs();
+                    showView('rate');
+                    return;
+                }
+            } catch (err) {
+                // Not authenticated
+            }
+            localStorage.removeItem('userName');
+            showView('login');
+        }
+
+        // Start
+        checkAuth();
+    </script>
+</body>
+</html>

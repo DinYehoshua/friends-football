@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Din",
+    "phone": "0507747474",
+    "nickname_aliases": [
+      "דין יהושע",
+      "דין י",
+      "דין",
+      "דין כדורגל"
+    ],
+    "is_admin": true,
+    "tier": 1
+  },
+  {
+    "name": "Alkabets",
+    "phone": "0524584202",
+    "nickname_aliases": [
+      "גיא א",
+      "גיא אלקבץ",
+      "אלקבץ",
+      "אלקבץ גיא"
+    ],
+    "is_admin": true,
+    "tier": 1
+  },
+  {
+    "name": "Yona",
+    "phone": "0546517737",
+    "nickname_aliases": [
+      "יונה",
+      "יונה אייל",
+      "יונתן אייל"
+    ],
+    "is_admin": true,
+    "tier": 1
+  },
+  {
+    "name": "Omer K",
+    "phone": "0502613061",
+    "nickname_aliases": [
+      "עומר כדורגל",
+      "עומר קורנהוזר",
+      "קורנהוזר"
+    ],
+    "is_admin": true,
+    "tier": 1
+  },
+  {
+    "name": "Adar Hadad",
+    "phone": "0523798943",
+    "nickname_aliases": [
+      "אדר כדורגל חדד",
+      "אדר חדד",
+      "אדר כדורגל",
+      "הדר חדד"
+    ],
+    "is_admin": false,
+    "tier": 3
+  },
+  {
+    "name": "Farhi",
+    "phone": "0525640644",
+    "nickname_aliases": [
+      "אורי פרחי כדורגל",
+      "אורי פרחי",
+      "פרחי"
+    ],
+    "is_admin": false,
+    "tier": 1
+  },
+  {
+    "name": "Gordon",
+    "phone": "0543350156",
+    "nickname_aliases": [
+      "גורדון נועם",
+      "נועם גורדון",
+      "גורדון"
+    ],
+    "is_admin": false,
+    "tier": 2
+  }
+]
