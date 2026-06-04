@@ -69,6 +69,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// Look up player by phone
 	player, err := getPlayerByPhone(phone)
 	if err != nil {
+		log.Printf("[Login] Failed login attempt - phone not found: %s", phone)
 		writeError(w, http.StatusUnauthorized, "player not found")
 		return
 	}
