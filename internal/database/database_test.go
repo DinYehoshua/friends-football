@@ -240,9 +240,11 @@ var _ = Describe("Database", func() {
 
 	Context("Fitness constants", func() {
 		It("defines correct categorical values", func() {
-			Expect(database.FitnessPoor).To(Equal(1))
-			Expect(database.FitnessNormal).To(Equal(2))
-			Expect(database.FitnessGood).To(Equal(3))
+			Expect(database.FitnessVeryPoor).To(Equal(1))
+			Expect(database.FitnessPoor).To(Equal(2))
+			Expect(database.FitnessAverage).To(Equal(3))
+			Expect(database.FitnessGood).To(Equal(4))
+			Expect(database.FitnessExcellent).To(Equal(5))
 		})
 	})
 })

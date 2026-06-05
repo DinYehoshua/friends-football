@@ -99,6 +99,11 @@ func (s *Server) handleUploadChat(w http.ResponseWriter, r *http.Request) {
 	result, err := p.ParseAndResolve(ctx, chatContent)
 	if err != nil {
 		log.Printf("[Upload] Gemini parsing failed: %v", err)
+		// Check if it's the AI overloaded error - return clean 503
+		if err == parser.ErrAIOverloaded {
+			writeError(w, http.StatusServiceUnavailable, "ai_overloaded")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to parse chat: "+err.Error())
 		return
 	}
@@ -336,7 +341,7 @@ func resolvePlayers(inputs []PlayerInput) ([]database.Player, error) {
 			if p.ID == -1 {
 				// Unresolved - create guest player with provided or default ratings
 				skillRating := 5.0
-				fitnessRating := 2.0
+				fitnessRating := 3.0 // Default to Average (3)
 				if input.Skill != nil {
 					skillRating = float64(*input.Skill)
 				}

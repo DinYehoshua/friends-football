@@ -157,9 +157,9 @@
         /* Roster row styles */
         .roster-row {
             display: grid;
-            grid-template-columns: 1fr 140px 100px;
+            grid-template-columns: 1fr 140px 130px;
             align-items: center;
-            padding: 12px 16px;
+            padding: 14px 16px;
             gap: 12px;
             transition: all 0.2s ease;
             border-bottom: 1px solid #1C1C1E;
@@ -178,19 +178,19 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
             background: #1A1A1A;
-            border-radius: 8px;
-            padding: 4px 6px;
+            border-radius: 10px;
+            padding: 6px 8px;
         }
         .counter-btn {
-            width: 26px;
-            height: 26px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 6px;
-            font-size: 15px;
+            border-radius: 8px;
+            font-size: 18px;
             font-weight: 600;
             transition: all 0.15s ease;
             user-select: none;
@@ -238,51 +238,48 @@
         .skill-display:focus {
             outline: none;
         }
-        /* Dynamic skill colors */
-        .skill-low { color: #FF6B6B; }
-        .skill-mid { color: #FFD93D; }
-        .skill-high { color: #6BCB77; }
+        /* Skill display colors - neutral white for rated, grey for unrated */
+        .skill-rated { color: #FFFFFF; }
         .skill-dormant { color: #555; }
-        /* Fitness segmented control */
-        .fitness-control {
-            display: flex;
+        /* Fitness dropdown select */
+        .fitness-select {
+            appearance: none;
+            -webkit-appearance: none;
             background: #1A1A1A;
+            border: 1px solid #2C2C2E;
             border-radius: 8px;
-            padding: 3px;
-            gap: 2px;
-        }
-        .fitness-seg {
-            flex: 1;
-            padding: 6px 4px;
-            font-size: 9px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            text-align: center;
+            padding: 10px 32px 10px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #FFFFFF;
             cursor: pointer;
             transition: all 0.15s ease;
-            border-radius: 5px;
-            color: #666;
-            background: transparent;
+            min-height: 44px;
+            width: 100%;
+            max-width: 140px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
         }
-        .fitness-seg:hover {
-            color: #999;
-            background: #252525;
+        .fitness-select:hover {
+            border-color: #3A3A3C;
+            background-color: #252525;
         }
-        .fitness-seg.selected {
-            background: #E5E5E5;
-            color: #000;
+        .fitness-select:focus {
+            outline: none;
+            border-color: #30D158;
         }
-        .dormant .fitness-seg {
-            color: #444;
+        .fitness-select option {
+            background: #1C1C1E;
+            color: #FFFFFF;
+            padding: 8px;
         }
-        .dormant .fitness-seg:hover {
+        .fitness-select.dormant {
             color: #555;
-            background: #1F1F1F;
+            border-color: #1C1C1E;
         }
-        .dormant .fitness-seg.selected {
-            background: transparent;
-            color: #444;
+        .fitness-select.dormant:hover {
+            border-color: #2C2C2E;
         }
         /* Save button states */
         .save-btn-inactive {
@@ -297,7 +294,7 @@
         /* Table header */
         .roster-header {
             display: grid;
-            grid-template-columns: 1fr 140px 100px;
+            grid-template-columns: 1fr 140px 130px;
             padding: 14px 16px;
             gap: 12px;
             background: #0D0D0D;
@@ -341,14 +338,14 @@
         .player-input-card {
             background: #1A1A1A;
             border-radius: 10px;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border: 1px solid transparent;
             transition: all 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            height: 42px;
+            min-height: 56px;
         }
         /* Mapping card for Who Are They screen - CSS Grid for alignment */
         .mapping-card {
@@ -518,33 +515,50 @@
             gap: 6px;
             flex-shrink: 0;
         }
-        /* Compact fitness control for review cards */
-        .fitness-control-compact {
-            display: flex;
-            background: #1A1A1A;
+        /* Smaller buttons for inline controls (Review Players page) */
+        .inline-controls .counter-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
             border-radius: 6px;
-            padding: 2px;
-            gap: 1px;
         }
-        .fitness-seg-compact {
+        .inline-controls .counter-widget {
             padding: 4px 6px;
-            font-size: 9px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            text-align: center;
+            gap: 4px;
+        }
+        .inline-controls .skill-display {
+            width: 24px;
+            font-size: 14px;
+        }
+        /* Compact fitness select for review cards (inline-controls) */
+        .fitness-select-compact {
+            appearance: none;
+            -webkit-appearance: none;
+            background: #1A1A1A;
+            border: 1px solid #2C2C2E;
+            border-radius: 6px;
+            padding: 6px 24px 6px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #FFFFFF;
             cursor: pointer;
             transition: all 0.15s ease;
-            border-radius: 4px;
-            color: #666;
-            background: transparent;
+            min-height: 32px;
+            max-width: 100px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 6px center;
         }
-        .fitness-seg-compact:hover {
-            color: #888;
+        .fitness-select-compact:hover {
+            border-color: #3A3A3C;
         }
-        .fitness-seg-compact.active {
-            background: #2C2C2E;
-            color: #FFF;
+        .fitness-select-compact:focus {
+            outline: none;
+            border-color: #30D158;
+        }
+        .fitness-select-compact option {
+            background: #1C1C1E;
+            color: #FFFFFF;
         }
         /* Secondary button style */
         .btn-secondary {
@@ -650,23 +664,19 @@
                 max-width: 100%;
                 box-sizing: border-box;
                 overflow: hidden;
+                min-height: 48px;
+                padding: 8px 10px;
             }
             .inline-controls {
                 flex-shrink: 0;
             }
-            /* Compact fitness control background for Review Players */
-            .fitness-control-compact {
-                background: #252525;
-                padding: 2px;
-                border-radius: 5px;
-            }
-            .fitness-seg-compact {
-                padding: 3px 4px;
-                font-size: 8px;
-                background: #1A1A1A;
-            }
-            .fitness-seg-compact.active {
-                background: #3A3A3A;
+            /* Compact fitness select for Review Players on mobile */
+            .fitness-select-compact {
+                padding: 4px 20px 4px 6px;
+                font-size: 10px;
+                min-height: 28px;
+                max-width: 85px;
+                background-position: right 4px center;
             }
             /* Skill counter in inline-controls needs matching wrapper */
             .inline-controls .counter-widget {
@@ -676,9 +686,16 @@
             }
             .inline-controls .counter-btn {
                 background: #1A1A1A;
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
             }
             .inline-controls .counter-btn:hover {
                 background: #2A2A2A;
+            }
+            .inline-controls .skill-display {
+                width: 20px;
+                font-size: 12px;
             }
             /* Footer controls - stack vertically */
             #admin-step-edit .roster-container > .mt-6 {
@@ -722,48 +739,43 @@
             }
 
             /* ===== GLOBAL MOBILE RATING CONTROLS ===== */
-            /* Condensed Fitness segmented control */
-            .fitness-control {
-                padding: 2px;
-                gap: 1px;
-                border-radius: 6px;
-            }
-            .fitness-seg {
-                padding: 4px 2px;
-                font-size: 8px;
-                letter-spacing: 0.3px;
-                border-radius: 4px;
+            /* Fitness select dropdown on mobile */
+            .fitness-select {
+                padding: 8px 28px 8px 10px;
+                font-size: 11px;
+                min-height: 40px;
+                max-width: 110px;
             }
 
             /* Compact Skill counter widget with tight background box */
             .counter-widget {
-                padding: 3px 4px;
-                gap: 2px;
+                padding: 4px 6px;
+                gap: 4px;
                 background: #1A1A1A;
-                border-radius: 6px;
-                width: 72px;
+                border-radius: 8px;
+                width: auto;
                 justify-content: center;
             }
             .counter-btn {
-                width: 20px;
-                height: 20px;
-                font-size: 12px;
-                border-radius: 4px;
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+                border-radius: 6px;
             }
             .skill-display {
-                width: 18px;
-                font-size: 13px;
+                width: 24px;
+                font-size: 15px;
             }
 
             /* Roster row - precise column widths for alignment */
             .roster-row {
-                grid-template-columns: 1fr 90px 72px;
+                grid-template-columns: 1fr 90px 110px;
                 gap: 8px;
-                padding: 10px 12px;
+                padding: 12px 12px;
             }
             /* Roster header must match row columns */
             .roster-header {
-                grid-template-columns: 1fr 90px 72px;
+                grid-template-columns: 1fr 90px 110px;
                 gap: 8px;
                 padding: 12px 12px;
             }
@@ -788,6 +800,9 @@
             <div class="flex gap-1 mobile-nav-tabs" id="nav-tabs">
                 <button id="tab-rate" class="nav-tab px-4 py-2 text-sm rounded-lg transition-colors" onclick="showView('rate')">
                     Rate Friends
+                </button>
+                <button id="tab-history" class="nav-tab px-4 py-2 text-sm rounded-lg transition-colors text-text-secondary" onclick="handleHistoryTabClick(event)">
+                    Match History
                 </button>
                 <button id="tab-admin" class="nav-tab px-4 py-2 text-sm rounded-lg transition-colors" onclick="showView('admin')">
                     Generate Kohot
@@ -911,7 +926,7 @@
                     <p class="text-text-secondary mt-2">Parsing chat...</p>
                 </div>
 
-                <p id="upload-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+                <p id="upload-error" class="text-red-500 text-sm text-center mt-4 hidden whitespace-pre-line"></p>
             </div>
 
             <!-- Step 1b: Who's Playing? (Manual Selection) -->
@@ -1179,18 +1194,18 @@
         let cameFromManualStep = false;  // Track if we came from manual selection step
         let manualSelections = [];       // Array of 12 selected players for manual flow
 
-        // Fitness options (key = API value, label = display text)
+        // Fitness options (value = API integer, label = display text, description = full description)
         const FITNESS_OPTIONS = [
-            { key: 'Poor', label: 'Poor' },
-            { key: 'Normal', label: 'Fine' },
-            { key: 'Good', label: 'Good' }
+            { value: 1, label: 'Very Poor', description: 'Struggles with continuous running' },
+            { value: 2, label: 'Poor', description: 'Tires quickly' },
+            { value: 3, label: 'Average', description: 'Standard match pace' },
+            { value: 4, label: 'Good', description: 'High work rate' },
+            { value: 5, label: 'Excellent', description: 'Tireless, peak stamina' }
         ];
 
-        // Get skill color class based on value
+        // Get skill color class - white for rated, dormant for unrated
         function getSkillColorClass(val) {
-            if (val <= 4) return 'skill-low';
-            if (val <= 7) return 'skill-mid';
-            return 'skill-high';
+            return 'skill-rated';
         }
 
         // ============ Views ============
@@ -1245,6 +1260,53 @@
             const tooltip = document.createElement('div');
             tooltip.className = 'admin-tooltip';
             tooltip.textContent = 'Managers only';
+            document.body.appendChild(tooltip);
+
+            // Position tooltip below the button
+            const rect = targetElement.getBoundingClientRect();
+            const tooltipWidth = tooltip.offsetWidth;
+            let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+
+            // Ensure tooltip doesn't overflow viewport on mobile
+            const padding = 8;
+            if (left < padding) {
+                left = padding;
+            } else if (left + tooltipWidth > window.innerWidth - padding) {
+                left = window.innerWidth - tooltipWidth - padding;
+            }
+
+            tooltip.style.top = `${rect.bottom + 8}px`;
+            tooltip.style.left = `${left}px`;
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                tooltip.classList.add('show');
+            });
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                tooltip.classList.remove('show');
+                setTimeout(() => tooltip.remove(), 200);
+            }, 3000);
+        }
+
+        // Handle Match History tab click - show "Coming Soon" tooltip for everyone
+        function handleHistoryTabClick(e) {
+            e.preventDefault();
+            showComingSoonTooltip(e.target);
+        }
+
+        function showComingSoonTooltip(targetElement) {
+            // Remove any existing tooltip
+            const existingTooltip = document.querySelector('.admin-tooltip');
+            if (existingTooltip) {
+                existingTooltip.remove();
+            }
+
+            // Create tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'admin-tooltip';
+            tooltip.textContent = 'Coming Soon';
             document.body.appendChild(tooltip);
 
             // Position tooltip below the button
@@ -1338,9 +1400,11 @@
                 // Initialize ratings from server data
                 allPlayers.forEach(p => {
                     if (p.my_skill_rating || p.my_fitness_rating) {
+                        // Convert fitness string to integer value
+                        const fitnessValue = FITNESS_OPTIONS.find(f => f.label === p.my_fitness_rating)?.value || 3;
                         ratings[p.id] = {
                             skill: p.my_skill_rating || 5,
-                            fitness: p.my_fitness_rating || 'Normal'
+                            fitness: fitnessValue
                         };
                         touched.add(p.id); // Mark as touched if previously rated
                     }
@@ -1379,8 +1443,8 @@
                     skillColorClass = 'skill-dormant';
                 }
 
-                // Fitness: dormant = no selection, active = show selection
-                const currentFitness = (isActive && r) ? r.fitness : null;
+                // Fitness: dormant = default (3), active = show selection
+                const currentFitness = (isActive && r) ? r.fitness : 3;
 
                 html += `
                     <div class="roster-row ${stateClass}" data-player-id="${p.id}">
@@ -1389,15 +1453,12 @@
                             <span class="font-medium text-sm truncate block">${escapeHtml(p.name)}</span>
                         </div>
 
-                        <!-- Fitness segmented control (center) -->
-                        <div class="fitness-control">
+                        <!-- Fitness dropdown (center) -->
+                        <select class="fitness-select${!isActive ? ' dormant' : ''}" onchange="setFitness(${p.id}, this.value)">
                             ${FITNESS_OPTIONS.map(f => `
-                                <span
-                                    class="fitness-seg ${currentFitness === f.key ? 'selected' : ''}"
-                                    onclick="setFitness(${p.id}, '${f.key}')"
-                                >${f.label}</span>
+                                <option value="${f.value}" ${currentFitness === f.value ? 'selected' : ''}>${f.label}</option>
                             `).join('')}
-                        </div>
+                        </select>
 
                         <!-- Skill counter widget (right) -->
                         <div class="counter-widget">
@@ -1453,7 +1514,7 @@
                 if (input) {
                     input.value = newVal;
                     // Update color class
-                    input.classList.remove('skill-low', 'skill-mid', 'skill-high', 'skill-dormant');
+                    input.classList.remove('skill-rated', 'skill-dormant');
                     input.classList.add(getSkillColorClass(newVal));
                 }
             }
@@ -1475,28 +1536,25 @@
 
             ratings[playerId].skill = val;
             // Update color class
-            inputEl.classList.remove('skill-low', 'skill-mid', 'skill-high', 'skill-dormant');
+            inputEl.classList.remove('skill-rated', 'skill-dormant');
             inputEl.classList.add(getSkillColorClass(val));
 
             hasUnsavedChanges = true;
             updateSaveButtonState();
         }
 
-        // Set fitness category
+        // Set fitness value (integer 1-5)
         function setFitness(playerId, fitness) {
             activatePlayer(playerId);
-            ratings[playerId].fitness = fitness;
+            ratings[playerId].fitness = parseInt(fitness);
 
-            // Update UI - toggle selected class
+            // Update UI - remove dormant class from select
             const row = document.querySelector(`[data-player-id="${playerId}"]`);
             if (row) {
-                row.querySelectorAll('.fitness-seg').forEach((opt, idx) => {
-                    if (FITNESS_OPTIONS[idx].key === fitness) {
-                        opt.classList.add('selected');
-                    } else {
-                        opt.classList.remove('selected');
-                    }
-                });
+                const select = row.querySelector('.fitness-select');
+                if (select) {
+                    select.classList.remove('dormant');
+                }
             }
 
             hasUnsavedChanges = true;
@@ -1506,7 +1564,7 @@
         // Activate a dormant player row
         function activatePlayer(playerId) {
             if (!ratings[playerId]) {
-                ratings[playerId] = { skill: 5, fitness: 'Normal' };
+                ratings[playerId] = { skill: 5, fitness: 3 }; // Default fitness: 3 (Average)
             }
 
             if (!touched.has(playerId)) {
@@ -1582,10 +1640,12 @@
                 const p = allPlayers[i];
                 const r = ratings[p.id];
                 if (r) {
+                    // Convert fitness integer to label for API
+                    const fitnessLabel = FITNESS_OPTIONS.find(f => f.value === r.fitness)?.label || 'Average';
                     batch.push({
                         target_id: p.id,
                         skill_rating: r.skill,
-                        fitness_category: r.fitness
+                        fitness_category: fitnessLabel
                     });
                 }
             }
@@ -1659,7 +1719,12 @@
                 const data = await res.json();
 
                 if (!res.ok) {
-                    showUploadError(data.error || 'Upload failed');
+                    // Check for AI overloaded error (503)
+                    if (res.status === 503 || data.error === 'ai_overloaded') {
+                        showUploadError('The AI is currently under heavy load.\nPlease try again in a few minutes.');
+                    } else {
+                        showUploadError(data.error || 'Upload failed');
+                    }
                     return;
                 }
 
@@ -1781,7 +1846,7 @@
                                 value="${escapeHtml(value)}"
                                 data-slot-index="${i}"
                                 oninput="handleAutocompleteInput(${i}, this)"
-                                onfocus="showAutocompleteDropdown(${i})"
+                                onfocus="handleAutocompleteFocus(${i})"
                                 onkeydown="handleAutocompleteKeydown(event, ${i})"
                                 tabindex="${i + 1}"
                             >
@@ -1830,6 +1895,58 @@
 
             showAutocompleteDropdown(slotIndex);
             validateManualSelections();
+        }
+
+        // Handle autocomplete input focus with smart scroll for mobile keyboards
+        function handleAutocompleteFocus(slotIndex) {
+            // Show dropdown immediately
+            showAutocompleteDropdown(slotIndex);
+
+            // Only apply smart scroll on mobile devices
+            if (window.innerWidth > 768) return;
+
+            // Delay to allow virtual keyboard to fully deploy and resize viewport
+            setTimeout(() => {
+                const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
+                const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
+                const wrapper = input.closest('.autocomplete-wrapper');
+
+                if (!input || !dropdown) return;
+
+                const isDropUp = dropdown.classList.contains('drop-up');
+                const topMargin = 10;
+
+                if (isDropUp) {
+                    // For upward dropdowns (bottom inputs): scroll so dropdown top is near screen top
+                    // The dropdown appears above the input, so we need to calculate where its top would be
+                    const dropdownHeight = dropdown.offsetHeight || 200; // Estimate if not rendered yet
+                    const inputRect = input.getBoundingClientRect();
+                    const currentScrollY = window.scrollY;
+
+                    // Calculate where the top of the dropdown is in document coordinates
+                    const dropdownTopInDoc = currentScrollY + inputRect.top - dropdownHeight;
+
+                    // Scroll so dropdown top is near the top of the screen
+                    const targetScroll = dropdownTopInDoc - topMargin;
+
+                    window.scrollTo({
+                        top: Math.max(0, targetScroll),
+                        behavior: 'smooth'
+                    });
+                } else {
+                    // For downward dropdowns (top inputs): scroll so input is near screen top
+                    const wrapperRect = wrapper.getBoundingClientRect();
+                    const currentScrollY = window.scrollY;
+
+                    // Calculate target scroll position to put wrapper near top
+                    const targetScroll = currentScrollY + wrapperRect.top - topMargin;
+
+                    window.scrollTo({
+                        top: Math.max(0, targetScroll),
+                        behavior: 'smooth'
+                    });
+                }
+            }, 300);
         }
 
         function showAutocompleteDropdown(slotIndex) {
@@ -2197,14 +2314,14 @@
             validatePlayerInputs();
         }
 
-        function renderInlineControls(index, skill = 5, fitness = 2, showFitness = true) {
+        function renderInlineControls(index, skill = 5, fitness = 3, showFitness = true) {
             const skillColor = getSkillColorClass(skill);
             const fitnessHtml = showFitness ? `
-                <div class="fitness-control-compact">
-                    <div class="fitness-seg-compact${fitness === 1 ? ' active' : ''}" data-fitness="1" onclick="setUnrecognizedFitness(${index}, this)">Poor</div>
-                    <div class="fitness-seg-compact${fitness === 2 ? ' active' : ''}" data-fitness="2" onclick="setUnrecognizedFitness(${index}, this)">Fine</div>
-                    <div class="fitness-seg-compact${fitness === 3 ? ' active' : ''}" data-fitness="3" onclick="setUnrecognizedFitness(${index}, this)">Good</div>
-                </div>
+                <select class="fitness-select-compact" onchange="setUnrecognizedFitness(${index}, this.value)" data-index="${index}">
+                    ${FITNESS_OPTIONS.map(f => `
+                        <option value="${f.value}" ${fitness === f.value ? 'selected' : ''}>${f.label}</option>
+                    `).join('')}
+                </select>
             ` : '';
             return `
                 <div class="inline-controls">
@@ -2224,18 +2341,14 @@
             let val = parseInt(input.value) + delta;
             val = Math.max(1, Math.min(10, val));
             input.value = val;
-            input.classList.remove('skill-low', 'skill-mid', 'skill-high');
+            input.classList.remove('skill-rated', 'skill-dormant');
             input.classList.add(getSkillColorClass(val));
         }
 
-        function setUnrecognizedFitness(index, clickedEl) {
+        function setUnrecognizedFitness(index, value) {
             const card = document.querySelector(`.player-input-card[data-index="${index}"]`);
-            card.querySelectorAll('.fitness-seg-compact').forEach(seg => {
-                seg.classList.remove('active');
-            });
-            clickedEl.classList.add('active');
             // Store fitness value in card for state retention when toggling
-            card.dataset.fitness = clickedEl.dataset.fitness;
+            card.dataset.fitness = value;
         }
 
         function handlePlayerNameChange(index) {
@@ -2286,28 +2399,25 @@
             // Update fitness control visibility for all unrecognized player cards
             const showFitness = checkbox.checked;
             document.querySelectorAll('.player-input-card[data-unrecognized="true"]').forEach(card => {
-                const fitnessControl = card.querySelector('.fitness-control-compact');
-                if (showFitness && !fitnessControl) {
-                    // Add fitness control - get current fitness value from data or default to 2
+                const fitnessSelect = card.querySelector('.fitness-select-compact');
+                if (showFitness && !fitnessSelect) {
+                    // Add fitness select - get current fitness value from data or default to 3 (Average)
                     const inlineControls = card.querySelector('.inline-controls');
                     if (inlineControls) {
-                        const existingFitness = parseInt(card.dataset.fitness) || 2;
+                        const existingFitness = parseInt(card.dataset.fitness) || 3;
                         const fitnessHtml = `
-                            <div class="fitness-control-compact">
-                                <div class="fitness-seg-compact${existingFitness === 1 ? ' active' : ''}" data-fitness="1" onclick="setUnrecognizedFitness(${card.dataset.index}, this)">Poor</div>
-                                <div class="fitness-seg-compact${existingFitness === 2 ? ' active' : ''}" data-fitness="2" onclick="setUnrecognizedFitness(${card.dataset.index}, this)">Fine</div>
-                                <div class="fitness-seg-compact${existingFitness === 3 ? ' active' : ''}" data-fitness="3" onclick="setUnrecognizedFitness(${card.dataset.index}, this)">Good</div>
-                            </div>
+                            <select class="fitness-select-compact" onchange="setUnrecognizedFitness(${card.dataset.index}, this.value)" data-index="${card.dataset.index}">
+                                ${FITNESS_OPTIONS.map(f => `
+                                    <option value="${f.value}" ${existingFitness === f.value ? 'selected' : ''}>${f.label}</option>
+                                `).join('')}
+                            </select>
                         `;
                         inlineControls.insertAdjacentHTML('afterbegin', fitnessHtml);
                     }
-                } else if (!showFitness && fitnessControl) {
+                } else if (!showFitness && fitnessSelect) {
                     // Store current fitness value before hiding
-                    const activeSeg = fitnessControl.querySelector('.fitness-seg-compact.active');
-                    if (activeSeg) {
-                        card.dataset.fitness = activeSeg.dataset.fitness;
-                    }
-                    fitnessControl.remove();
+                    card.dataset.fitness = fitnessSelect.value;
+                    fitnessSelect.remove();
                 }
             });
         }
@@ -2357,10 +2467,12 @@
                         playerData.skill = parseInt(skillInput.value);
                     }
 
-                    // Get fitness from active compact segment
-                    const activeFitness = card.querySelector('.fitness-seg-compact.active');
-                    if (activeFitness) {
-                        playerData.fitness = parseInt(activeFitness.dataset.fitness);
+                    // Get fitness from select or card data
+                    const fitnessSelect = card.querySelector('.fitness-select-compact');
+                    if (fitnessSelect) {
+                        playerData.fitness = parseInt(fitnessSelect.value);
+                    } else if (card.dataset.fitness) {
+                        playerData.fitness = parseInt(card.dataset.fitness);
                     }
 
                     players.push(playerData);
@@ -3025,9 +3137,11 @@
                     allPlayers = await res.json();
                     allPlayers.forEach(p => {
                         if (p.my_skill_rating || p.my_fitness_rating) {
+                            // Convert fitness string from API to integer value
+                            const fitnessValue = FITNESS_OPTIONS.find(f => f.label === p.my_fitness_rating)?.value || 3;
                             ratings[p.id] = {
                                 skill: p.my_skill_rating || 5,
-                                fitness: p.my_fitness_rating || 'Normal'
+                                fitness: fitnessValue
                             };
                             touched.add(p.id); // Mark as touched if previously rated
                         }

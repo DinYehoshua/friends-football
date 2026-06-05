@@ -457,7 +457,7 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("submitting valid batch ratings", func() {
 			It("saves successfully and returns saved_count", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Normal"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
 					{"target_id": 3, "skill_rating": 8, "fitness_category": "Good"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
@@ -481,9 +481,11 @@ var _ = Describe("HTTP Endpoints", func() {
 
 			It("accepts all fitness categories", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 5, "fitness_category": "Poor"},
-					{"target_id": 3, "skill_rating": 5, "fitness_category": "NORMAL"},
-					{"target_id": 4, "skill_rating": 5, "fitness_category": "good"},
+					{"target_id": 2, "skill_rating": 5, "fitness_category": "Very Poor"},
+					{"target_id": 3, "skill_rating": 5, "fitness_category": "Poor"},
+					{"target_id": 4, "skill_rating": 5, "fitness_category": "AVERAGE"},
+					{"target_id": 5, "skill_rating": 5, "fitness_category": "good"},
+					{"target_id": 6, "skill_rating": 5, "fitness_category": "Excellent"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -517,7 +519,7 @@ var _ = Describe("HTTP Endpoints", func() {
 				ratings := []map[string]interface{}{
 					{"target_id": 2, "skill_rating": 7, "fitness_category": "Good"},
 					{"target_id": 3, "skill_rating": 8, "fitness_category": "Poor"},
-					{"target_id": 4, "skill_rating": 6, "fitness_category": "Normal"},
+					{"target_id": 4, "skill_rating": 6, "fitness_category": "Average"},
 				}
 				submitBatchRatings(sessionCookie, ratings)
 
@@ -542,7 +544,7 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("batch contains invalid rating", func() {
 			It("rejects self-rating", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Normal"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
 					{"target_id": 1, "skill_rating": 10, "fitness_category": "Good"}, // Self-rating
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
@@ -550,12 +552,12 @@ var _ = Describe("HTTP Endpoints", func() {
 				Expect(w.Code).To(Equal(http.StatusBadRequest))
 				var resp map[string]string
 				decodeResponse(w, &resp)
-				Expect(resp["error"]).To(ContainSubstring("cannot rate yourself"))
+				Expect(resp["error"]).To(ContainSubstring("rate yourself"))
 			})
 
 			It("rejects invalid target_id", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 0, "skill_rating": 7, "fitness_category": "Normal"},
+					{"target_id": 0, "skill_rating": 7, "fitness_category": "Average"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -567,7 +569,7 @@ var _ = Describe("HTTP Endpoints", func() {
 
 			It("rejects skill_rating out of range", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 11, "fitness_category": "Normal"},
+					{"target_id": 2, "skill_rating": 11, "fitness_category": "Average"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -579,19 +581,19 @@ var _ = Describe("HTTP Endpoints", func() {
 
 			It("rejects invalid fitness_category", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Excellent"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Super"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
 				Expect(w.Code).To(Equal(http.StatusBadRequest))
 				var resp map[string]string
 				decodeResponse(w, &resp)
-				Expect(resp["error"]).To(ContainSubstring("Poor"))
+				Expect(resp["error"]).To(ContainSubstring("Very Poor"))
 			})
 
 			It("includes index in error message", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Normal"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
 					{"target_id": 3, "skill_rating": 15, "fitness_category": "Good"}, // Invalid at index 1
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
@@ -606,7 +608,7 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("request is malformed", func() {
 			It("rejects non-array body", func() {
 				req := makeJSONRequest("POST", "/api/ratings", map[string]interface{}{
-					"target_id": 2, "skill_rating": 7, "fitness_category": "Normal",
+					"target_id": 2, "skill_rating": 7, "fitness_category": "Average",
 				})
 				req.AddCookie(sessionCookie)
 				w := httptest.NewRecorder()
@@ -619,7 +621,7 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("not authenticated", func() {
 			It("returns unauthorized", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Normal"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
 				}
 				req := makeJSONRequest("POST", "/api/ratings", ratings)
 				w := httptest.NewRecorder()
@@ -784,7 +786,7 @@ var _ = Describe("HTTP Endpoints", func() {
 				Expect(guest).NotTo(BeNil())
 				Expect(guest["id"]).To(BeEquivalentTo(-1))
 				Expect(guest["base_skill_rating"]).To(BeEquivalentTo(5.0))
-				Expect(guest["base_fitness_rating"]).To(BeEquivalentTo(2.0))
+				Expect(guest["base_fitness_rating"]).To(BeEquivalentTo(3.0))
 			})
 
 			It("supports multiple guests", func() {
@@ -929,7 +931,7 @@ var _ = Describe("HTTP Endpoints", func() {
 				Expect(w.Code).To(Equal(http.StatusForbidden))
 				var resp map[string]string
 				decodeResponse(w, &resp)
-				Expect(resp["error"]).To(ContainSubstring("admin access required"))
+				Expect(resp["error"]).To(ContainSubstring("Only the manager"))
 			})
 		})
 	})
@@ -1022,7 +1024,7 @@ var _ = Describe("HTTP Endpoints", func() {
 				Expect(w.Code).To(Equal(http.StatusForbidden))
 				var resp map[string]string
 				decodeResponse(w, &resp)
-				Expect(resp["error"]).To(ContainSubstring("admin access required"))
+				Expect(resp["error"]).To(ContainSubstring("Only the manager"))
 			})
 		})
 	})

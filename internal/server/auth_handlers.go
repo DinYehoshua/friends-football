@@ -184,7 +184,7 @@ type PlayerResponse struct {
 	Tier int    `json:"tier"` // 1=Core, 2=Regular, 3=Occasional, 4=Rare
 	// Voter's existing ratings for this player (null if not rated)
 	MySkillRating   *int    `json:"my_skill_rating,omitempty"`
-	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Poor", "Normal", "Good"
+	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Very Poor", "Poor", "Average", "Good", "Excellent"
 }
 
 // handleGetPlayers returns all players except the logged-in user, with voter's existing ratings.
@@ -245,14 +245,18 @@ func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 // mapFitnessToCategory converts fitness integer to category string.
 func mapFitnessToCategory(fitness int) string {
 	switch fitness {
+	case database.FitnessVeryPoor:
+		return "Very Poor"
 	case database.FitnessPoor:
 		return "Poor"
-	case database.FitnessNormal:
-		return "Normal"
+	case database.FitnessAverage:
+		return "Average"
 	case database.FitnessGood:
 		return "Good"
+	case database.FitnessExcellent:
+		return "Excellent"
 	default:
-		return "Normal"
+		return "Average"
 	}
 }
 
@@ -260,7 +264,7 @@ func mapFitnessToCategory(fitness int) string {
 type RatingRequest struct {
 	TargetID        int    `json:"target_id"`
 	SkillRating     int    `json:"skill_rating"`
-	FitnessCategory string `json:"fitness_category"` // "Poor", "Normal", "Good"
+	FitnessCategory string `json:"fitness_category"` // "Very Poor", "Poor", "Average", "Good", "Excellent"
 }
 
 // handleSubmitRatings saves or updates multiple anonymous peer ratings in a single transaction.
@@ -363,13 +367,17 @@ func (s *Server) handleSubmitRatings(w http.ResponseWriter, r *http.Request) {
 // mapFitnessCategory converts a fitness category string to its integer value.
 func mapFitnessCategory(category string) (int, error) {
 	switch strings.ToLower(strings.TrimSpace(category)) {
+	case "very poor":
+		return database.FitnessVeryPoor, nil
 	case "poor":
 		return database.FitnessPoor, nil
-	case "normal":
-		return database.FitnessNormal, nil
+	case "average":
+		return database.FitnessAverage, nil
 	case "good":
 		return database.FitnessGood, nil
+	case "excellent":
+		return database.FitnessExcellent, nil
 	default:
-		return 0, fmt.Errorf("fitness_category must be 'Poor', 'Normal', or 'Good'")
+		return 0, fmt.Errorf("fitness_category must be 'Very Poor', 'Poor', 'Average', 'Good', or 'Excellent'")
 	}
 }

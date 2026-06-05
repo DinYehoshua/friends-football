@@ -21,11 +21,13 @@ const (
 	DriverPostgres DriverType = "postgres"
 )
 
-// FitnessCategory represents the categorical fitness rating.
+// FitnessCategory represents the categorical fitness rating (1-5 scale).
 const (
-	FitnessPoor   = 1 // Poor fitness
-	FitnessNormal = 2 // Normal fitness
-	FitnessGood   = 3 // Good fitness
+	FitnessVeryPoor  = 1 // Very Poor - Struggles with continuous running
+	FitnessPoor      = 2 // Poor - Tires quickly
+	FitnessAverage   = 3 // Average - Standard match pace
+	FitnessGood      = 4 // Good - High work rate
+	FitnessExcellent = 5 // Excellent - Tireless, peak stamina
 )
 
 // DB holds the database connection pool.
@@ -43,7 +45,7 @@ CREATE TABLE IF NOT EXISTS players (
     phone TEXT UNIQUE NOT NULL,
     nickname_aliases TEXT,
     base_skill_rating REAL DEFAULT 5.0,
-    base_fitness_rating REAL DEFAULT 2.0,
+    base_fitness_rating REAL DEFAULT 3.0,
     is_admin INTEGER DEFAULT 0,
     tier INTEGER DEFAULT 3
 );
@@ -54,7 +56,7 @@ CREATE TABLE IF NOT EXISTS anonymous_ratings (
     voter_id INTEGER REFERENCES players(id),
     target_id INTEGER REFERENCES players(id),
     skill_rating INTEGER CHECK (skill_rating BETWEEN 1 AND 10),
-    fitness_rating INTEGER CHECK (fitness_rating BETWEEN 1 AND 3),
+    fitness_rating INTEGER CHECK (fitness_rating BETWEEN 1 AND 5),
     UNIQUE(voter_id, target_id)
 );
 
@@ -74,7 +76,7 @@ CREATE TABLE IF NOT EXISTS players (
     phone TEXT UNIQUE NOT NULL,
     nickname_aliases TEXT,
     base_skill_rating DOUBLE PRECISION DEFAULT 5.0,
-    base_fitness_rating DOUBLE PRECISION DEFAULT 2.0,
+    base_fitness_rating DOUBLE PRECISION DEFAULT 3.0,
     is_admin BOOLEAN DEFAULT FALSE,
     tier INTEGER DEFAULT 3
 );
@@ -85,7 +87,7 @@ CREATE TABLE IF NOT EXISTS anonymous_ratings (
     voter_id INTEGER REFERENCES players(id),
     target_id INTEGER REFERENCES players(id),
     skill_rating INTEGER CHECK (skill_rating BETWEEN 1 AND 10),
-    fitness_rating INTEGER CHECK (fitness_rating BETWEEN 1 AND 3),
+    fitness_rating INTEGER CHECK (fitness_rating BETWEEN 1 AND 5),
     UNIQUE(voter_id, target_id)
 );
 

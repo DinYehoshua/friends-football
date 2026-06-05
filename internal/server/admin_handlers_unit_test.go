@@ -112,7 +112,7 @@ var _ = Describe("Admin Handlers Unit Tests", func() {
 				Expect(players[0].ID).To(Equal(-1))
 				Expect(players[0].Name).To(Equal("Unknown Guest"))
 				Expect(players[0].BaseSkillRating).To(Equal(5.0))
-				Expect(players[0].BaseFitnessRating).To(Equal(2.0))
+				Expect(players[0].BaseFitnessRating).To(Equal(3.0))
 			})
 		})
 

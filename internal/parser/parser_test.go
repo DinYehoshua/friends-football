@@ -3,7 +3,9 @@ package parser_test
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 
@@ -50,6 +52,94 @@ var expectedPlayers = []string{
 }
 
 var _ = Describe("Parser", func() {
+	Context("IsRateLimitError", func() {
+		It("detects 429 status code errors", func() {
+			err := errors.New("googleapi: Error 429: You exceeded your current quota")
+			Expect(parser.IsRateLimitError(err)).To(BeTrue())
+		})
+
+		It("detects quota exceeded errors", func() {
+			err := errors.New("Quota exceeded for metric: generativelanguage.googleapis.com")
+			Expect(parser.IsRateLimitError(err)).To(BeTrue())
+		})
+
+		It("detects rate limit text", func() {
+			err := errors.New("rate limit exceeded, please retry")
+			Expect(parser.IsRateLimitError(err)).To(BeTrue())
+		})
+
+		It("detects resource exhausted errors", func() {
+			err := errors.New("Resource exhausted: too many requests")
+			Expect(parser.IsRateLimitError(err)).To(BeTrue())
+		})
+
+		It("returns false for nil error", func() {
+			Expect(parser.IsRateLimitError(nil)).To(BeFalse())
+		})
+
+		It("returns false for unrelated errors", func() {
+			err := errors.New("connection refused")
+			Expect(parser.IsRateLimitError(err)).To(BeFalse())
+		})
+
+		It("is case insensitive", func() {
+			err := errors.New("QUOTA EXCEEDED")
+			Expect(parser.IsRateLimitError(err)).To(BeTrue())
+		})
+	})
+
+	Context("IsFatalError", func() {
+		It("detects context canceled", func() {
+			err := errors.New("context canceled")
+			Expect(parser.IsFatalError(err)).To(BeTrue())
+		})
+
+		It("detects context deadline exceeded", func() {
+			err := errors.New("context deadline exceeded")
+			Expect(parser.IsFatalError(err)).To(BeTrue())
+		})
+
+		It("detects API key errors", func() {
+			err := errors.New("invalid API key provided")
+			Expect(parser.IsFatalError(err)).To(BeTrue())
+		})
+
+		It("detects unauthorized errors", func() {
+			err := errors.New("unauthorized: invalid credentials")
+			Expect(parser.IsFatalError(err)).To(BeTrue())
+		})
+
+		It("detects 403 forbidden errors", func() {
+			err := errors.New("googleapi: Error 403: Permission denied")
+			Expect(parser.IsFatalError(err)).To(BeTrue())
+		})
+
+		It("returns false for nil error", func() {
+			Expect(parser.IsFatalError(nil)).To(BeFalse())
+		})
+
+		It("returns false for rate limit errors", func() {
+			err := errors.New("429 rate limit exceeded")
+			Expect(parser.IsFatalError(err)).To(BeFalse())
+		})
+
+		It("returns false for generic errors", func() {
+			err := errors.New("some network error")
+			Expect(parser.IsFatalError(err)).To(BeFalse())
+		})
+
+		It("is case insensitive", func() {
+			err := errors.New("CONTEXT CANCELED")
+			Expect(parser.IsFatalError(err)).To(BeTrue())
+		})
+	})
+
+	Context("ErrAIOverloaded", func() {
+		It("has the expected error message", func() {
+			Expect(parser.ErrAIOverloaded).To(MatchError("ai_overloaded"))
+		})
+	})
+
 	Context("ResolvePlayersFromDB", func() {
 		BeforeEach(func() {
 			err := database.Init(":memory:")
@@ -285,6 +375,55 @@ var _ = Describe("Parser", func() {
 			Expect(parser.ErrPlayerCountInvalid).To(MatchError("expected exactly 12 players from chat"))
 			Expect(parser.ErrChatFileNotFound).To(MatchError("_chat.txt not found in zip archive"))
 			Expect(parser.ErrInvalidZip).To(MatchError("invalid zip file"))
+		})
+	})
+
+	Context("Parser.New", func() {
+		It("returns ErrNoAPIKey when GEMINI_API_KEY is not set", func() {
+			// Save and clear existing key
+			originalKey := os.Getenv("GEMINI_API_KEY")
+			os.Unsetenv("GEMINI_API_KEY")
+			defer func() {
+				if originalKey != "" {
+					os.Setenv("GEMINI_API_KEY", originalKey)
+				}
+			}()
+
+			_, err := parser.New(context.Background())
+			Expect(err).To(MatchError(parser.ErrNoAPIKey))
+		})
+	})
+
+	// Integration tests - skipped unless GEMINI_API_KEY is set
+	Context("ParseChat integration", func() {
+		var p *parser.Parser
+		var ctx context.Context
+
+		BeforeEach(func() {
+			if os.Getenv("GEMINI_API_KEY") == "" {
+				Skip("GEMINI_API_KEY not set - skipping integration tests")
+			}
+
+			ctx = context.Background()
+			var err error
+			p, err = parser.New(ctx)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			if p != nil {
+				p.Close()
+			}
+		})
+
+		It("parses sample chat and returns 12 players", func() {
+			names, err := p.ParseChat(ctx, sampleChaoticChat)
+			// May fail with rate limit - that's expected
+			if err == parser.ErrAIOverloaded {
+				Skip("AI overloaded - rate limit hit during test")
+			}
+			Expect(err).NotTo(HaveOccurred())
+			Expect(names).To(HaveLen(12))
 		})
 	})
 })

@@ -19,11 +19,18 @@ import (
 )
 
 const (
-	defaultModel  = "gemini-flash-latest"
 	apiKeyEnvVar  = "GEMINI_API_KEY"
 	expectedCount = 12
 	chatFileName  = "_chat.txt"
 )
+
+// Models to try in order (fallback on rate limit errors)
+var modelFallbackOrder = []string{
+	"gemini-flash-latest",   // Primary - auto-updates to newest
+	"gemini-3.1-flash-lite", // First fallback
+	"gemini-2.5-flash",      // Second fallback
+	"gemini-2.5-flash-lite", // Final fallback
+}
 
 var (
 	ErrNoAPIKey           = errors.New("GEMINI_API_KEY environment variable not set")
@@ -31,12 +38,12 @@ var (
 	ErrPlayerCountInvalid = errors.New("expected exactly 12 players from chat")
 	ErrChatFileNotFound   = errors.New("_chat.txt not found in zip archive")
 	ErrInvalidZip         = errors.New("invalid zip file")
+	ErrAIOverloaded       = errors.New("ai_overloaded") // All models rate limited
 )
 
 // Parser handles WhatsApp chat parsing using Gemini LLM.
 type Parser struct {
 	client *genai.Client
-	model  *genai.GenerativeModel
 }
 
 // UnresolvedPlayer represents a player name that couldn't be matched to the database.
@@ -64,27 +71,21 @@ func New(ctx context.Context) (*Parser, error) {
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
 	}
 
-	model := client.GenerativeModel(defaultModel)
-	configureModel(model)
-
 	return &Parser{
 		client: client,
-		model:  model,
 	}, nil
 }
 
 // NewWithClient creates a Parser with a pre-configured client (for testing).
 func NewWithClient(client *genai.Client) *Parser {
-	model := client.GenerativeModel(defaultModel)
-	configureModel(model)
 	return &Parser{
 		client: client,
-		model:  model,
 	}
 }
 
-// configureModel sets up the model for JSON output.
-func configureModel(model *genai.GenerativeModel) {
+// createModel creates and configures a model by name.
+func (p *Parser) createModel(modelName string) *genai.GenerativeModel {
+	model := p.client.GenerativeModel(modelName)
 	model.ResponseMIMEType = "application/json"
 	model.ResponseSchema = &genai.Schema{
 		Type: genai.TypeArray,
@@ -95,6 +96,7 @@ func configureModel(model *genai.GenerativeModel) {
 	}
 	temp := float32(0.1) // Low temperature for consistent parsing
 	model.Temperature = &temp
+	return model
 }
 
 // Close releases the Gemini client resources.
@@ -190,37 +192,98 @@ ADDITIONAL RULES:
 OUTPUT: Return a JSON array of exactly 12 strings - the final confirmed attendees in their original language.`
 }
 
+// IsRateLimitError checks if the error is a rate limit (429) or quota error.
+func IsRateLimitError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "429") ||
+		strings.Contains(errStr, "quota") ||
+		strings.Contains(errStr, "rate limit") ||
+		strings.Contains(errStr, "resource exhausted")
+}
+
+// IsFatalError checks if the error should stop all retries immediately.
+func IsFatalError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	// Context cancelled/deadline exceeded - no point retrying
+	if strings.Contains(errStr, "context canceled") ||
+		strings.Contains(errStr, "context deadline exceeded") {
+		return true
+	}
+	// Invalid API key - all models will fail
+	if strings.Contains(errStr, "api key") ||
+		strings.Contains(errStr, "invalid key") ||
+		strings.Contains(errStr, "unauthorized") ||
+		strings.Contains(errStr, "403") {
+		return true
+	}
+	return false
+}
+
 // ParseChat extracts 12 attending players from a WhatsApp chat text content.
+// It tries multiple models in order, falling back only on rate limit errors.
 func (p *Parser) ParseChat(ctx context.Context, chatContent string) ([]string, error) {
 	prompt := fmt.Sprintf("%s\n\nWhatsApp Chat Content:\n%s", systemPrompt(), chatContent)
 
-	resp, err := p.model.GenerateContent(ctx, genai.Text(prompt))
-	if err != nil {
-		return nil, fmt.Errorf("gemini API error: %w", err)
+	var lastErr error
+
+	for _, modelName := range modelFallbackOrder {
+		log.Printf("[Parser] Trying model: %s", modelName)
+		model := p.createModel(modelName)
+
+		resp, err := model.GenerateContent(ctx, genai.Text(prompt))
+		if err != nil {
+			lastErr = err
+
+			// Fatal errors - stop immediately, no point trying other models
+			if IsFatalError(err) {
+				log.Printf("[Parser] Fatal error on %s: %v", modelName, err)
+				return nil, ErrAIOverloaded
+			}
+
+			// Rate limit - try next model
+			if IsRateLimitError(err) {
+				log.Printf("[Parser] Rate limit hit on %s, trying next model...", modelName)
+				continue
+			}
+
+			// Other errors - also try next model (might be model-specific issue)
+			log.Printf("[Parser] Error on %s: %v, trying next model...", modelName, err)
+			continue
+		}
+
+		if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+			return nil, ErrInvalidResponse
+		}
+
+		// Extract text from response
+		textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
+		if !ok {
+			return nil, ErrInvalidResponse
+		}
+
+		// Parse JSON array
+		var names []string
+		if err := json.Unmarshal([]byte(textPart), &names); err != nil {
+			return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+		}
+
+		if len(names) != expectedCount {
+			return nil, fmt.Errorf("%w: got %d", ErrPlayerCountInvalid, len(names))
+		}
+
+		log.Printf("[Parser] Successfully extracted %d players using model %s", len(names), modelName)
+		return names, nil
 	}
 
-	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return nil, ErrInvalidResponse
-	}
-
-	// Extract text from response
-	textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
-	if !ok {
-		return nil, ErrInvalidResponse
-	}
-
-	// Parse JSON array
-	var names []string
-	if err := json.Unmarshal([]byte(textPart), &names); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
-	}
-
-	if len(names) != expectedCount {
-		return nil, fmt.Errorf("%w: got %d", ErrPlayerCountInvalid, len(names))
-	}
-
-	log.Printf("Extracted %d players from chat", len(names))
-	return names, nil
+	// All models failed
+	log.Printf("[Parser] All models failed, last error: %v", lastErr)
+	return nil, ErrAIOverloaded
 }
 
 // ParseChatFromZip extracts chat from zip file and parses it.
@@ -268,7 +331,7 @@ func ResolvePlayersFromDB(extractedNames []string) (*ParseResult, error) {
 				Name:              name,
 				Phone:             "UNRESOLVED",
 				BaseSkillRating:   5.0,
-				BaseFitnessRating: 2.0,
+				BaseFitnessRating: 3.0, // Default to Average (3)
 			})
 		}
 	}
