@@ -178,8 +178,8 @@
     "name": "Omer P",
     "phone": "0504555604",
     "nickname_aliases": ["עומר פרץ של מוטי"],
-    "is_admin": true,
-    "tier": 1
+    "is_admin": false,
+    "tier": 2
   },
   {
     "name": "Omer C",

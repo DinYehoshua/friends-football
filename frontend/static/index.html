@@ -36,6 +36,11 @@
             min-height: 100vh;
             touch-action: pan-x pan-y;
         }
+        /* Disable page bounce only when Rate Friends view is active */
+        body.rate-view-active {
+            overscroll-behavior: none;
+            overflow: hidden;
+        }
         /* Admin tooltip */
         .admin-tooltip {
             position: fixed;
@@ -291,7 +296,43 @@
             background: #30D158;
             color: #000000;
         }
-        /* Table header */
+        /* Rate Friends - Table container with sticky header and hidden scrollbar */
+        #view-rate .roster-container {
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        #view-rate .roster-container::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+        /* End of list indicator */
+        .end-of-list-indicator {
+            text-align: center;
+            padding: 8px 16px;
+            color: #48484A;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        /* Rate Friends - Table header */
+        #view-rate .roster-header {
+            display: grid;
+            grid-template-columns: 1fr 140px 130px;
+            padding: 14px 16px;
+            gap: 12px;
+            background: #0D0D0D;
+            border-bottom: 1px solid #1C1C1E;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #view-rate .roster-header span {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #34C759;
+        }
+        /* Generic table header (for other pages) */
         .roster-header {
             display: grid;
             grid-template-columns: 1fr 140px 130px;
@@ -773,8 +814,12 @@
                 gap: 8px;
                 padding: 12px 12px;
             }
-            /* Roster header must match row columns */
-            .roster-header {
+            /* Rate view - adjust for taller mobile nav */
+            #view-rate {
+                height: calc(100vh - 100px) !important;
+            }
+            /* Rate Friends - Roster header must match row columns */
+            #view-rate .roster-header {
                 grid-template-columns: 1fr 90px 110px;
                 gap: 8px;
                 padding: 12px 12px;
@@ -838,14 +883,14 @@
         </div>
 
         <!-- View B: Rate Friends -->
-        <div id="view-rate" class="view hidden p-4 max-w-2xl mx-auto pb-24">
-            <div class="mb-6">
+        <div id="view-rate" class="view hidden flex flex-col max-w-2xl mx-auto" style="height: calc(100vh - 56px); overflow: hidden;">
+            <div class="p-4 pb-2">
                 <h2 class="text-xl font-semibold mb-1">Rate Your Friends</h2>
                 <p id="rate-subtitle" class="text-text-secondary text-sm">Ratings are anonymous. Update anytime.</p>
             </div>
 
             <!-- Roster with charcoal container -->
-            <div class="roster-container">
+            <div class="roster-container flex-1 mx-4">
                 <!-- Table header -->
                 <div class="roster-header">
                     <span>Player</span>
@@ -858,7 +903,7 @@
                 </div>
             </div>
 
-            <div id="ratings-controls" class="mt-6 hidden">
+            <div id="ratings-controls" class="p-4 hidden">
                 <div class="flex gap-3">
                     <button
                         id="load-more-btn"
@@ -1216,6 +1261,9 @@
                 t.classList.add('text-text-secondary');
             });
 
+            // Toggle body class for Rate Friends view (locks page scroll)
+            document.body.classList.remove('rate-view-active');
+
             if (view === 'login') {
                 document.getElementById('view-login').classList.remove('hidden');
                 document.getElementById('nav-tabs').classList.add('hidden');
@@ -1224,6 +1272,7 @@
                 document.getElementById('nav-tabs').classList.remove('hidden');
                 document.getElementById('tab-rate').classList.add('text-accent', 'bg-accent/10');
                 document.getElementById('tab-rate').classList.remove('text-text-secondary');
+                document.body.classList.add('rate-view-active');
             } else if (view === 'admin') {
                 if (!isAdmin) return;
                 document.getElementById('view-admin').classList.remove('hidden');
@@ -1480,6 +1529,18 @@
 
             container.innerHTML = html;
             visibleCount = toShow;
+
+            // Show end-of-list indicator at bottom of visible list
+            if (allPlayers.length > 0) {
+                const endIndicator = document.createElement('div');
+                endIndicator.className = 'end-of-list-indicator';
+                if (visibleCount >= allPlayers.length) {
+                    endIndicator.innerHTML = '— End of list —';
+                } else {
+                    endIndicator.innerHTML = 'Load for more...';
+                }
+                container.appendChild(endIndicator);
+            }
 
             // Always show controls when there are players
             if (allPlayers.length > 0) {
