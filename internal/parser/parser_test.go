@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -424,6 +426,189 @@ var _ = Describe("Parser", func() {
 			}
 			Expect(err).NotTo(HaveOccurred())
 			Expect(names).To(HaveLen(12))
+		})
+	})
+
+	Context("TrimChatHistory", func() {
+		// Helper function to format date for tests
+		formatTestDate := func(t time.Time) string {
+			return t.Format("02/01/2006")
+		}
+
+		It("trims chat to last 8 days from current date", func() {
+			now := time.Now()
+			// Create dates relative to today
+			oldDate := now.AddDate(0, 0, -20)   // 20 days ago - should be trimmed
+			withinDate := now.AddDate(0, 0, -5) // 5 days ago - should be included
+			recentDate := now.AddDate(0, 0, -1) // yesterday - should be included
+
+			longChat := fmt.Sprintf(`[%s, 10:00:00] Omer: Old message
+[%s, 10:00:00] Dan: Within 8 days
+[%s, 10:00:00] Niv: Recent`,
+				formatTestDate(oldDate),
+				formatTestDate(withinDate),
+				formatTestDate(recentDate))
+
+			trimmed := parser.TrimChatHistory(longChat)
+
+			// Cutoff is 8 days from NOW
+			Expect(trimmed).NotTo(ContainSubstring("Old message"))
+			Expect(trimmed).To(ContainSubstring("Within 8 days"))
+			Expect(trimmed).To(ContainSubstring("Recent"))
+		})
+
+		It("returns original content when all messages are within 8 days", func() {
+			now := time.Now()
+			d1 := now.AddDate(0, 0, -3)
+			d2 := now.AddDate(0, 0, -2)
+			d3 := now.AddDate(0, 0, -1)
+
+			shortChat := fmt.Sprintf(`[%s, 10:00:00] Omer: First
+[%s, 10:00:00] Dan: Second
+[%s, 10:00:00] Niv: Third`,
+				formatTestDate(d1),
+				formatTestDate(d2),
+				formatTestDate(d3))
+
+			trimmed := parser.TrimChatHistory(shortChat)
+
+			Expect(trimmed).To(ContainSubstring("First"))
+			Expect(trimmed).To(ContainSubstring("Second"))
+			Expect(trimmed).To(ContainSubstring("Third"))
+		})
+
+		It("returns empty when no dates found", func() {
+			noDateChat := `Random text without dates
+Another line
+More content`
+
+			trimmed := parser.TrimChatHistory(noDateChat)
+
+			Expect(trimmed).To(Equal(""))
+		})
+
+		It("handles empty input", func() {
+			trimmed := parser.TrimChatHistory("")
+			Expect(trimmed).To(Equal(""))
+		})
+
+		It("handles multiline messages correctly", func() {
+			now := time.Now()
+			oldDate := now.AddDate(0, 0, -15)
+			withinDate := now.AddDate(0, 0, -5)
+			recentDate := now.AddDate(0, 0, -2)
+
+			chat := fmt.Sprintf(`[%s, 10:00:00] Omer: Old message
+with continuation
+[%s, 10:00:00] Dan: Within range
+also has continuation
+[%s, 10:00:00] Niv: Last`,
+				formatTestDate(oldDate),
+				formatTestDate(withinDate),
+				formatTestDate(recentDate))
+
+			trimmed := parser.TrimChatHistory(chat)
+
+			// Old message AND its continuation should be trimmed
+			Expect(trimmed).NotTo(ContainSubstring("Old message"))
+			Expect(trimmed).NotTo(ContainSubstring("with continuation"))
+			// Recent messages should be included
+			Expect(trimmed).To(ContainSubstring("Within range"))
+			Expect(trimmed).To(ContainSubstring("also has continuation"))
+			Expect(trimmed).To(ContainSubstring("Last"))
+		})
+
+		It("handles real WhatsApp format with Hebrew", func() {
+			now := time.Now()
+			oldDate := now.AddDate(0, 0, -15)
+			d1 := now.AddDate(0, 0, -5)
+			d2 := now.AddDate(0, 0, -3)
+			d3 := now.AddDate(0, 0, -1)
+
+			hebrewChat := fmt.Sprintf(`[%s, 20:00:00] עומר כדורגל: מתחילים סבב חדש
+[%s, 10:00:00] דין יהושע: 1
+[%s, 14:00:00] סתיו הרשמן כדורגל: 2
+[%s, 15:47:59] עודד שמיר: מבטל, 2`,
+				formatTestDate(oldDate),
+				formatTestDate(d1),
+				formatTestDate(d2),
+				formatTestDate(d3))
+
+			trimmed := parser.TrimChatHistory(hebrewChat)
+
+			// Old message should be trimmed, recent ones should remain
+			Expect(trimmed).NotTo(ContainSubstring("מתחילים סבב חדש"))
+			Expect(trimmed).To(ContainSubstring("דין יהושע: 1"))
+			Expect(trimmed).To(ContainSubstring("עודד שמיר: מבטל"))
+		})
+
+		It("handles lines with Unicode control characters (RTL/LTR marks)", func() {
+			now := time.Now()
+			oldDate := now.AddDate(0, 0, -20)
+			recentDate := now.AddDate(0, 0, -2)
+
+			rtlChat := fmt.Sprintf("\u200E[%s, 10:00:00] Old: message\n\u200F[%s, 10:00:00] New: message",
+				formatTestDate(oldDate),
+				formatTestDate(recentDate))
+
+			trimmed := parser.TrimChatHistory(rtlChat)
+
+			Expect(trimmed).NotTo(ContainSubstring("Old"))
+			Expect(trimmed).To(ContainSubstring("New"))
+		})
+
+		It("handles single-digit hours in timestamps", func() {
+			now := time.Now()
+			oldDate := now.AddDate(0, 0, -20)
+			recentDate := now.AddDate(0, 0, -2)
+
+			chat := fmt.Sprintf(`[%s, 8:00:00] Old: early morning
+[%s, 9:30:00] New: also early`,
+				formatTestDate(oldDate),
+				formatTestDate(recentDate))
+
+			trimmed := parser.TrimChatHistory(chat)
+
+			Expect(trimmed).NotTo(ContainSubstring("Old"))
+			Expect(trimmed).To(ContainSubstring("New"))
+		})
+
+		It("trims messages exactly at 8 days boundary", func() {
+			now := time.Now()
+			// 9 days ago should be trimmed
+			nineAgo := now.AddDate(0, 0, -9)
+			// 8 days ago should be included
+			eightAgo := now.AddDate(0, 0, -8)
+			// 7 days ago should be included
+			sevenAgo := now.AddDate(0, 0, -7)
+
+			chat := fmt.Sprintf(`[%s, 10:00:00] Omer: Nine days ago
+[%s, 10:00:00] Dan: Eight days ago
+[%s, 10:00:00] Niv: Seven days ago`,
+				formatTestDate(nineAgo),
+				formatTestDate(eightAgo),
+				formatTestDate(sevenAgo))
+
+			trimmed := parser.TrimChatHistory(chat)
+
+			Expect(trimmed).NotTo(ContainSubstring("Nine days ago"))
+			Expect(trimmed).To(ContainSubstring("Eight days ago"))
+			Expect(trimmed).To(ContainSubstring("Seven days ago"))
+		})
+
+		It("returns empty when all messages are older than cutoff", func() {
+			now := time.Now()
+			veryOld := now.AddDate(0, 0, -30)
+			alsoOld := now.AddDate(0, 0, -20)
+
+			chat := fmt.Sprintf(`[%s, 10:00:00] Omer: Very old message
+[%s, 10:00:00] Dan: Also old`,
+				formatTestDate(veryOld),
+				formatTestDate(alsoOld))
+
+			trimmed := parser.TrimChatHistory(chat)
+
+			Expect(trimmed).To(Equal(""))
 		})
 	})
 })

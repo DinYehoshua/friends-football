@@ -23,7 +23,7 @@ type Player struct {
 	ID            int
 	Name          string
 	SkillRating   float64 // 1.0 to 10.0
-	FitnessRating float64 // 1.0 to 5.0 (VeryPoor=1, Poor=2, Average=3, Good=4, Excellent=5)
+	FitnessRating float64 // 1.0 to 5.0 (Low=1, Poor=2, Average=3, Good=4, Excellent=5)
 }
 
 // Team represents a team of players with aggregate stats.

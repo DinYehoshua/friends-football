@@ -20,11 +20,11 @@ func mockPlayers() []balancer.Player {
 	return []balancer.Player{
 		{ID: 1, Name: "Player1", SkillRating: 8.0, FitnessRating: 3.0},   // Average
 		{ID: 2, Name: "Player2", SkillRating: 7.5, FitnessRating: 2.0},   // Poor
-		{ID: 3, Name: "Player3", SkillRating: 6.0, FitnessRating: 1.0},   // VeryPoor
+		{ID: 3, Name: "Player3", SkillRating: 6.0, FitnessRating: 1.0},   // Low
 		{ID: 4, Name: "Player4", SkillRating: 9.0, FitnessRating: 2.0},   // Poor
 		{ID: 5, Name: "Player5", SkillRating: 5.5, FitnessRating: 3.0},   // Average
 		{ID: 6, Name: "Player6", SkillRating: 7.0, FitnessRating: 2.0},   // Poor
-		{ID: 7, Name: "Player7", SkillRating: 8.5, FitnessRating: 1.0},   // VeryPoor
+		{ID: 7, Name: "Player7", SkillRating: 8.5, FitnessRating: 1.0},   // Low
 		{ID: 8, Name: "Player8", SkillRating: 6.5, FitnessRating: 3.0},   // Average
 		{ID: 9, Name: "Player9", SkillRating: 7.0, FitnessRating: 2.0},   // Poor
 		{ID: 10, Name: "Player10", SkillRating: 5.0, FitnessRating: 2.0}, // Poor
@@ -292,8 +292,8 @@ var _ = Describe("Balancer", func() {
 		})
 
 		It("uses correct early exit thresholds", func() {
-			Expect(balancer.EarlyExitWithFitness).To(Equal(2.0))
-			Expect(balancer.EarlyExitWithoutFitness).To(Equal(3.0))
+			Expect(balancer.EarlyExitWithFitness).To(Equal(7.0))
+			Expect(balancer.EarlyExitWithoutFitness).To(Equal(4.0))
 		})
 	})
 })

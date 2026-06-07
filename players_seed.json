@@ -78,5 +78,149 @@
     ],
     "is_admin": false,
     "tier": 2
+  },
+  {
+    "name": "Adam",
+    "phone": "0524733122",
+    "nickname_aliases": [
+      "אדם וויצמן כדורגל"
+    ],
+    "is_admin": false,
+    "tier": 2
+  },
+  {
+    "name": "Diego",
+    "phone": "0547745138",
+    "nickname_aliases": [
+      "דייגו כדורגל"
+    ],
+    "is_admin": false,
+    "tier": 2
+  },
+  {
+    "name": "Harry",
+    "phone": "0544725143",
+    "nickname_aliases": ["הארי איסק"],
+    "is_admin": false,
+    "tier": 2
+  },
+  {
+    "name": "Titi",
+    "phone": "0543114202",
+    "nickname_aliases": ["טיטלמן אמיר"],
+    "is_admin": false,
+    "tier": 4
+  },
+  {
+    "name": "Yuval L",
+    "phone": "0546542821",
+    "nickname_aliases": ["יובל ליבוביץ׳"],
+    "is_admin": false,
+    "tier": 3
+  },
+  {
+    "name": "Yarden Knafo",
+    "phone": "0542129909",
+    "nickname_aliases": ["ירדן קנפו"],
+    "is_admin": false,
+    "tier": 3
+  },
+  {
+    "name": "Lior Avivi",
+    "phone": "0542089362",
+    "nickname_aliases": ["ליאור אביבי של נידם"],
+    "is_admin": false,
+    "tier": 4
+  },
+  {
+    "name": "Liad",
+    "phone": "0544678934",
+    "nickname_aliases": ["ליעד שטרנברג"],
+    "is_admin": false,
+    "tier": 3
+  },
+  {
+    "name": "Liran",
+    "phone": "0523989572",
+    "nickname_aliases": ["לירן מור"],
+    "is_admin": false,
+    "tier": 1
+  },
+  {
+    "name": "Moti",
+    "phone": "0504555602",
+    "nickname_aliases": ["מוטי כדורגל"],
+    "is_admin": false,
+    "tier": 1
+  },
+  {
+    "name": "Michael V",
+    "phone": "0546441531",
+    "nickname_aliases": ["מייקל וקנין"],
+    "is_admin": false,
+    "tier": 3
+  },
+  {
+    "name": "Stav",
+    "phone": "0504311601",
+    "nickname_aliases": ["סתיו הרשמן כדורגל"],
+    "is_admin": false,
+    "tier": 1
+  },
+  {
+    "name": "Oded",
+    "phone": "0528509112",
+    "nickname_aliases": ["עודד שמיר"],
+    "is_admin": false,
+    "tier": 1
+  },
+  {
+    "name": "Omer P",
+    "phone": "0504555604",
+    "nickname_aliases": ["עומר פרץ של מוטי"],
+    "is_admin": true,
+    "tier": 1
+  },
+  {
+    "name": "Omer C",
+    "phone": "0504652226",
+    "nickname_aliases": ["עומר של אלקבץ"],
+    "is_admin": true,
+    "tier": 1
+  },
+  {
+    "name": "Amit",
+    "phone": "0527788995",
+    "nickname_aliases": ["עמיתי גל אור"],
+    "is_admin": false,
+    "tier": 2
+  },
+  {
+    "name": "Omri",
+    "phone": "0526006382",
+    "nickname_aliases": ["עמרי אמסטרונג"],
+    "is_admin": false,
+    "tier": 1
+  },
+  {
+    "name": "Raz Gal Or",
+    "phone": "0527788994",
+    "nickname_aliases": ["רז גל אור"],
+    "is_admin": false,
+    "tier": 3
+  },
+  {
+    "name": "Tamir",
+    "phone": "0544447496",
+    "nickname_aliases": ["תמיר ג'ינו"],
+    "is_admin": false,
+    "tier": 1
+  },
+  {
+    "name": "Shaul",
+    "phone": "0504588831",
+    "nickname_aliases": ["שאול כדורגל"],
+    "is_admin": false,
+    "tier": 1
   }
 ]

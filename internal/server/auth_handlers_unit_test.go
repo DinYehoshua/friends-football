@@ -65,10 +65,10 @@ var _ = Describe("Auth Handlers Unit Tests", func() {
 
 	Describe("mapFitnessCategory", func() {
 		When("category is valid", func() {
-			It("maps 'Very Poor' to FitnessVeryPoor", func() {
-				val, err := mapFitnessCategory("Very Poor")
+			It("maps 'Low' to FitnessLow", func() {
+				val, err := mapFitnessCategory("Low")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(val).To(Equal(database.FitnessVeryPoor))
+				Expect(val).To(Equal(database.FitnessLow))
 			})
 
 			It("maps 'Poor' to FitnessPoor", func() {
@@ -96,10 +96,10 @@ var _ = Describe("Auth Handlers Unit Tests", func() {
 			})
 
 			It("is case-insensitive", func() {
-				for _, category := range []string{"poor", "POOR", "Poor", "pOoR"} {
+				for _, category := range []string{"low", "LOW", "Low", "lOw"} {
 					val, err := mapFitnessCategory(category)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(val).To(Equal(database.FitnessPoor))
+					Expect(val).To(Equal(database.FitnessLow))
 				}
 			})
 
@@ -114,7 +114,7 @@ var _ = Describe("Auth Handlers Unit Tests", func() {
 			It("returns error for unknown category", func() {
 				_, err := mapFitnessCategory("Super")
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Very Poor"))
+				Expect(err.Error()).To(ContainSubstring("Low"))
 				Expect(err.Error()).To(ContainSubstring("Excellent"))
 			})
 
@@ -126,8 +126,8 @@ var _ = Describe("Auth Handlers Unit Tests", func() {
 	})
 
 	Describe("mapFitnessToCategory", func() {
-		It("maps FitnessVeryPoor to 'Very Poor'", func() {
-			Expect(mapFitnessToCategory(database.FitnessVeryPoor)).To(Equal("Very Poor"))
+		It("maps FitnessLow to 'Low'", func() {
+			Expect(mapFitnessToCategory(database.FitnessLow)).To(Equal("Low"))
 		})
 
 		It("maps FitnessPoor to 'Poor'", func() {

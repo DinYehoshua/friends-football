@@ -184,7 +184,7 @@ type PlayerResponse struct {
 	Tier int    `json:"tier"` // 1=Core, 2=Regular, 3=Occasional, 4=Rare
 	// Voter's existing ratings for this player (null if not rated)
 	MySkillRating   *int    `json:"my_skill_rating,omitempty"`
-	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Very Poor", "Poor", "Average", "Good", "Excellent"
+	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Low", "Poor", "Average", "Good", "Excellent"
 }
 
 // handleGetPlayers returns all players except the logged-in user, with voter's existing ratings.
@@ -245,8 +245,8 @@ func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 // mapFitnessToCategory converts fitness integer to category string.
 func mapFitnessToCategory(fitness int) string {
 	switch fitness {
-	case database.FitnessVeryPoor:
-		return "Very Poor"
+	case database.FitnessLow:
+		return "Low"
 	case database.FitnessPoor:
 		return "Poor"
 	case database.FitnessAverage:
@@ -367,8 +367,8 @@ func (s *Server) handleSubmitRatings(w http.ResponseWriter, r *http.Request) {
 // mapFitnessCategory converts a fitness category string to its integer value.
 func mapFitnessCategory(category string) (int, error) {
 	switch strings.ToLower(strings.TrimSpace(category)) {
-	case "very poor":
-		return database.FitnessVeryPoor, nil
+	case "low":
+		return database.FitnessLow, nil
 	case "poor":
 		return database.FitnessPoor, nil
 	case "average":
@@ -378,6 +378,6 @@ func mapFitnessCategory(category string) (int, error) {
 	case "excellent":
 		return database.FitnessExcellent, nil
 	default:
-		return 0, fmt.Errorf("fitness_category must be 'Very Poor', 'Poor', 'Average', 'Good', or 'Excellent'")
+		return 0, fmt.Errorf("fitness_category must be 'Low', 'Poor', 'Average', 'Good', or 'Excellent'")
 	}
 }

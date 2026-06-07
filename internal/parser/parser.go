@@ -10,7 +10,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -19,10 +21,15 @@ import (
 )
 
 const (
-	apiKeyEnvVar  = "GEMINI_API_KEY"
-	expectedCount = 12
-	chatFileName  = "_chat.txt"
+	apiKeyEnvVar    = "GEMINI_API_KEY"
+	expectedCount   = 12
+	chatFileName    = "_chat.txt"
+	chatHistoryDays = 8 // Number of days of chat history to keep
 )
+
+// WhatsApp date pattern: [DD/MM/YYYY, HH:MM:SS] (with optional Unicode control chars at start)
+// The \p{Cf} matches Unicode "format" characters like U+200E (LTR mark), U+200F (RTL mark)
+var whatsappDateRegex = regexp.MustCompile(`^[\p{Cf}\s]*\[(\d{2}/\d{2}/\d{4}), \d{1,2}:\d{2}:\d{2}\]`)
 
 // Models to try in order (fallback on rate limit errors)
 var modelFallbackOrder = []string{
@@ -144,6 +151,69 @@ func ExtractChatFromZipBytes(zipData []byte) (string, error) {
 	return "", ErrChatFileNotFound
 }
 
+// TrimChatHistory trims a WhatsApp chat export to only include the last N days
+// of messages (default 8 days) from the CURRENT system date. This prevents
+// token limit issues when parsing long chat histories.
+//
+// The function iterates from the END of the chat (most efficient for large histories)
+// to find the cutoff point, properly handling multiline messages.
+func TrimChatHistory(chatContent string) string {
+	lines := strings.Split(chatContent, "\n")
+	if len(lines) == 0 {
+		return chatContent
+	}
+
+	// Calculate cutoff date (8 days before TODAY), truncated to midnight for proper comparison
+	now := time.Now()
+	cutoffDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -chatHistoryDays)
+	log.Printf("[Parser] Trimming chat: today=%s, cutoff=%s", now.Format("02/01/2006"), cutoffDate.Format("02/01/2006"))
+
+	// Iterate backwards from the end to find where the cutoff starts
+	// This is O(recent_messages) instead of O(total_messages)
+	// Track the index of the first valid (within range) message we've seen
+	firstValidMessageIndex := -1
+	for i := len(lines) - 1; i >= 0; i-- {
+		if date, ok := parseWhatsAppDate(lines[i]); ok {
+			if date.Before(cutoffDate) {
+				// Found message BEFORE cutoff - stop here
+				break
+			}
+			// This message is within range - remember it
+			firstValidMessageIndex = i
+		}
+	}
+
+	// No valid messages found: either no dates at all, or all messages too old
+	if firstValidMessageIndex == -1 {
+		log.Println("[Parser] No messages within cutoff period")
+		return ""
+	}
+
+	// Join from the first valid message to end
+	trimmedLines := lines[firstValidMessageIndex:]
+	trimmedContent := strings.Join(trimmedLines, "\n")
+
+	log.Printf("[Parser] Trimmed chat from %d to %d lines", len(lines), len(trimmedLines))
+	return trimmedContent
+}
+
+// parseWhatsAppDate extracts the date from a WhatsApp message line.
+// Returns the parsed date and true if successful, zero time and false otherwise.
+func parseWhatsAppDate(line string) (time.Time, bool) {
+	matches := whatsappDateRegex.FindStringSubmatch(line)
+	if len(matches) < 2 {
+		return time.Time{}, false
+	}
+
+	// Parse DD/MM/YYYY format
+	date, err := time.Parse("02/01/2006", matches[1])
+	if err != nil {
+		return time.Time{}, false
+	}
+
+	return date, true
+}
+
 // systemPrompt returns the specialized prompt for WhatsApp chat parsing.
 func systemPrompt() string {
 	return `You are a WhatsApp football group chat analyzer. Your task is to extract exactly 12 players who are confirmed to attend the upcoming Saturday match.
@@ -228,7 +298,9 @@ func IsFatalError(err error) bool {
 // ParseChat extracts 12 attending players from a WhatsApp chat text content.
 // It tries multiple models in order, falling back only on rate limit errors.
 func (p *Parser) ParseChat(ctx context.Context, chatContent string) ([]string, error) {
-	prompt := fmt.Sprintf("%s\n\nWhatsApp Chat Content:\n%s", systemPrompt(), chatContent)
+	// Trim chat history to last 8 days to avoid token limit issues
+	trimmedContent := TrimChatHistory(chatContent)
+	prompt := fmt.Sprintf("%s\n\nWhatsApp Chat Content:\n%s", systemPrompt(), trimmedContent)
 
 	var lastErr error
 

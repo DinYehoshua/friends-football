@@ -23,7 +23,7 @@ const (
 
 // FitnessCategory represents the categorical fitness rating (1-5 scale).
 const (
-	FitnessVeryPoor  = 1 // Very Poor - Struggles with continuous running
+	FitnessLow       = 1 // Low - Struggles with continuous running
 	FitnessPoor      = 2 // Poor - Tires quickly
 	FitnessAverage   = 3 // Average - Standard match pace
 	FitnessGood      = 4 // Good - High work rate

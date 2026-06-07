@@ -481,7 +481,7 @@ var _ = Describe("HTTP Endpoints", func() {
 
 			It("accepts all fitness categories", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 5, "fitness_category": "Very Poor"},
+					{"target_id": 2, "skill_rating": 5, "fitness_category": "Low"},
 					{"target_id": 3, "skill_rating": 5, "fitness_category": "Poor"},
 					{"target_id": 4, "skill_rating": 5, "fitness_category": "AVERAGE"},
 					{"target_id": 5, "skill_rating": 5, "fitness_category": "good"},
@@ -588,7 +588,7 @@ var _ = Describe("HTTP Endpoints", func() {
 				Expect(w.Code).To(Equal(http.StatusBadRequest))
 				var resp map[string]string
 				decodeResponse(w, &resp)
-				Expect(resp["error"]).To(ContainSubstring("Very Poor"))
+				Expect(resp["error"]).To(ContainSubstring("Low"))
 			})
 
 			It("includes index in error message", func() {
