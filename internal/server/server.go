@@ -2,12 +2,20 @@
 //
 // # API Endpoints
 //
-// ## Authentication & Player Portal
+// ## Authentication (Google SSO Only)
 //
-//	POST /api/auth/login
-//	  - Login with phone number, sets session cookie
-//	  - Body: {"phone": "+972501234567"}
-//	  - Response: {"player_id": 1, "name": "Omer", "is_admin": false}
+//	POST /api/auth/google
+//	  - Login with Google OAuth, sets session cookie if already linked
+//	  - Body: {"id_token": "..."}
+//	  - Response (linked): {"status": "exists", "player_id": 1, "name": "Omer", "is_admin": false}
+//	  - Response (not linked): {"status": "needs_claim", "google_email": "...", "claim_token": "..."}
+//
+//	POST /api/auth/claim
+//	  - Link Google account to existing player profile (one-time setup)
+//	  - Body: {"claim_token": "...", "phone": "0501234567"}
+//	  - Response: {"status": "claimed", "player_id": 1, "name": "Omer", "is_admin": false}
+//
+// ## Player Portal
 //
 //	GET /api/players
 //	  - Get all players except the logged-in user (for rating)
@@ -43,13 +51,7 @@
 //
 // # cURL Examples
 //
-//	# Login
-//	curl -X POST http://localhost:8080/api/auth/login \
-//	  -H "Content-Type: application/json" \
-//	  -d '{"phone": "+972501234567"}' \
-//	  -c cookies.txt
-//
-//	# Get players for rating
+//	# Get players for rating (requires valid session)
 //	curl http://localhost:8080/api/players -b cookies.txt
 //
 //	# Submit batch ratings
@@ -127,8 +129,11 @@ func New(cfg Config) *Server {
 
 // registerRoutes sets up all API routes.
 func (s *Server) registerRoutes() {
-	// Auth & Player endpoints
-	s.mux.HandleFunc("POST /api/auth/login", s.handleLogin)
+	// Auth endpoints (Google SSO only)
+	s.mux.HandleFunc("POST /api/auth/google", s.handleGoogleAuth)
+	s.mux.HandleFunc("POST /api/auth/claim", s.handleClaimAccount)
+
+	// Player endpoints
 	s.mux.HandleFunc("GET /api/players", s.handleGetPlayers)
 	s.mux.HandleFunc("POST /api/ratings", s.handleSubmitRatings)
 

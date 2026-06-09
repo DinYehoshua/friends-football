@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     phone TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     nickname_aliases TEXT,
     base_skill_rating REAL DEFAULT 5.0,
     base_fitness_rating REAL DEFAULT 3.0,
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS players (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     phone TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE,
     nickname_aliases TEXT,
     base_skill_rating DOUBLE PRECISION DEFAULT 5.0,
     base_fitness_rating DOUBLE PRECISION DEFAULT 3.0,
@@ -103,6 +105,7 @@ type Player struct {
 	ID                int
 	Name              string
 	Phone             string
+	Email             sql.NullString
 	NicknameAliases   sql.NullString
 	BaseSkillRating   float64
 	BaseFitnessRating float64
@@ -254,7 +257,7 @@ func GetPlayersByIDs(ids []int) ([]Player, error) {
 	}
 
 	placeholders, args := BuildInClause(ids)
-	query := fmt.Sprintf(`SELECT id, name, phone, nickname_aliases, base_skill_rating, base_fitness_rating, is_admin, tier
+	query := fmt.Sprintf(`SELECT id, name, phone, email, nickname_aliases, base_skill_rating, base_fitness_rating, is_admin, tier
 	          FROM players WHERE id IN (%s)`, placeholders)
 
 	rows, err := DB.Query(query, args...)
@@ -266,7 +269,7 @@ func GetPlayersByIDs(ids []int) ([]Player, error) {
 	var players []Player
 	for rows.Next() {
 		var p Player
-		if err := rows.Scan(&p.ID, &p.Name, &p.Phone, &p.NicknameAliases, &p.BaseSkillRating, &p.BaseFitnessRating, &p.IsAdmin, &p.Tier); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Phone, &p.Email, &p.NicknameAliases, &p.BaseSkillRating, &p.BaseFitnessRating, &p.IsAdmin, &p.Tier); err != nil {
 			return nil, fmt.Errorf("failed to scan player: %w", err)
 		}
 		players = append(players, p)

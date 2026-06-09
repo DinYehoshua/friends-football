@@ -116,7 +116,7 @@
     "phone": "0546542821",
     "nickname_aliases": ["יובל ליבוביץ׳"],
     "is_admin": false,
-    "tier": 3
+    "tier": 2
   },
   {
     "name": "Yarden Knafo",
@@ -207,7 +207,7 @@
     "phone": "0527788994",
     "nickname_aliases": ["רז גל אור"],
     "is_admin": false,
-    "tier": 3
+    "tier": 4
   },
   {
     "name": "Tamir",

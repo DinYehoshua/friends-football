@@ -7,6 +7,8 @@
     <!-- Favicon using emoji via SVG data URL -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨🏾‍🤝‍👨🏽</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         tailwind.config = {
             theme: {
@@ -305,14 +307,6 @@
         }
         #view-rate .roster-container::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
-        }
-        /* End of list indicator */
-        .end-of-list-indicator {
-            text-align: center;
-            padding: 8px 16px;
-            color: #48484A;
-            font-size: 11px;
-            letter-spacing: 0.5px;
         }
         /* Rate Friends - Table header */
         #view-rate .roster-header {
@@ -858,27 +852,50 @@
 
     <!-- Main Content -->
     <main class="pt-14 min-h-screen mobile-main-offset">
-        <!-- View A: Login Screen -->
+        <!-- View A: Login Screen (Google SSO Only) -->
         <div id="view-login" class="view p-4 max-w-md mx-auto mt-20">
             <div class="text-center mb-12">
                 <h1 class="text-3xl font-bold mb-2">Welcome</h1>
-                <p class="text-text-secondary">Enter your phone number to continue</p>
+                <p class="text-text-secondary">Sign in with Google to continue</p>
             </div>
             <div class="space-y-4">
-                <input
-                    type="tel"
-                    id="login-phone"
-                    placeholder="050-1234567"
-                    class="w-full bg-transparent border border-border rounded-lg px-4 py-3 text-lg focus:border-accent focus:outline-none transition-colors"
-                    onkeydown="if(event.key==='Enter') handleLogin()"
-                >
-                <button
-                    onclick="handleLogin()"
-                    class="w-full bg-accent text-pitch font-semibold py-3 rounded-lg hover:bg-opacity-90 transition-colors"
-                >
-                    Continue
-                </button>
+                <!-- Google Sign-In Button -->
+                <div id="google-signin-container" class="flex justify-center">
+                    <div id="google-signin-btn"></div>
+                </div>
                 <p id="login-error" class="text-red-500 text-sm text-center hidden whitespace-pre-line"></p>
+            </div>
+        </div>
+
+        <!-- Google Claim Modal (First-time account linking) -->
+        <div id="claim-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-[#1C1C1E] rounded-2xl w-full max-w-sm p-6">
+                <div class="text-center mb-6">
+                    <h2 class="text-xl font-semibold mb-3">First time here?</h2>
+                    <p class="text-text-secondary text-sm">Enter your phone number</p>
+                </div>
+                <div class="space-y-4">
+                    <input
+                        type="tel"
+                        id="claim-phone"
+                        placeholder="050-1234567"
+                        class="w-full bg-transparent border border-border rounded-lg px-4 py-3 text-lg focus:border-accent focus:outline-none transition-colors"
+                        onkeydown="if(event.key==='Enter') handleClaimAccount()"
+                    >
+                    <button
+                        onclick="handleClaimAccount()"
+                        class="w-full bg-accent text-pitch font-semibold py-3 rounded-lg hover:bg-opacity-90 transition-colors"
+                    >
+                        Let's Go!
+                    </button>
+                    <button
+                        onclick="closeClaimModal()"
+                        class="w-full border border-border text-text-secondary py-3 rounded-lg hover:border-text-secondary transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <p id="claim-error" class="text-red-500 text-sm text-center hidden whitespace-pre-line"></p>
+                </div>
             </div>
         </div>
 
@@ -1386,34 +1403,134 @@
             }, 3000);
         }
 
-        // ============ Login ============
-        async function handleLogin() {
-            const phone = document.getElementById('login-phone').value.trim();
-            const errorEl = document.getElementById('login-error');
-            errorEl.classList.add('hidden');
+        // ============ Google OAuth ============
+        const GOOGLE_CLIENT_ID = '272997809731-e4e909k05p9gb0lsh923af7pnhfng8ql.apps.googleusercontent.com';
 
-            if (!phone) {
-                errorEl.textContent = 'What are you trying to do? Enter your phone.';
-                errorEl.classList.remove('hidden');
+        // Initialize Google Sign-In when the library loads
+        window.onload = function() {
+            if (!GOOGLE_CLIENT_ID) {
+                document.getElementById('login-error').textContent = 'Google Sign-In not configured';
+                document.getElementById('login-error').classList.remove('hidden');
                 return;
             }
 
+            if (!window.google) {
+                document.getElementById('login-error').textContent = 'Failed to load Google Sign-In';
+                document.getElementById('login-error').classList.remove('hidden');
+                return;
+            }
+
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleGoogleSignIn,
+                auto_select: false,
+                cancel_on_tap_outside: true,
+            });
+
+            google.accounts.id.renderButton(
+                document.getElementById('google-signin-btn'),
+                {
+                    theme: 'filled_black',
+                    size: 'large',
+                    width: 280,
+                    text: 'signin_with',
+                    shape: 'rectangular',
+                    logo_alignment: 'left'
+                }
+            );
+        };
+
+        // Store for claim flow
+        let pendingClaimToken = null;
+
+        async function handleGoogleSignIn(response) {
+            const errorEl = document.getElementById('login-error');
+            errorEl.classList.add('hidden');
+
             try {
-                const res = await fetch('/api/auth/login', {
+                const res = await fetch('/api/auth/google', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone })
+                    body: JSON.stringify({ id_token: response.credential })
                 });
 
                 const data = await res.json();
+
                 if (!res.ok) {
-                    errorEl.textContent = data.error || 'Login failed';
+                    errorEl.textContent = data.error || 'Google sign-in failed';
                     errorEl.classList.remove('hidden');
                     return;
                 }
 
+                if (data.status === 'exists') {
+                    // Already linked - proceed to app
+                    isAdmin = data.is_admin;
+                    localStorage.setItem('userName', data.name);
+                    setUserGreeting(data.name);
+                    updateNavTabs();
+                    await loadPlayers();
+                    showView('rate');
+                } else if (data.status === 'needs_claim') {
+                    // Show claim modal
+                    pendingClaimToken = data.claim_token;
+                    document.getElementById('claim-modal').classList.remove('hidden');
+                }
+            } catch (err) {
+                errorEl.textContent = 'Connection error';
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        // Normalize phone number: strip spaces, hyphens, and other non-digits except leading +
+        function normalizePhone(phone) {
+            // Keep leading + for country code, remove all other non-digits
+            const trimmed = phone.trim();
+            if (trimmed.startsWith('+')) {
+                return '+' + trimmed.slice(1).replace(/\D/g, '');
+            }
+            return trimmed.replace(/\D/g, '');
+        }
+
+        async function handleClaimAccount() {
+            const rawPhone = document.getElementById('claim-phone').value;
+            const phone = normalizePhone(rawPhone);
+            const errorEl = document.getElementById('claim-error');
+            errorEl.classList.add('hidden');
+
+            if (!phone) {
+                errorEl.textContent = 'Enter your phone number';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            if (!pendingClaimToken) {
+                errorEl.textContent = 'Session expired. Please try again.';
+                errorEl.classList.remove('hidden');
+                closeClaimModal();
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/auth/claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        claim_token: pendingClaimToken,
+                        phone: phone
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    errorEl.textContent = data.error || 'Failed to link account';
+                    errorEl.classList.remove('hidden');
+                    return;
+                }
+
+                // Success - close modal and proceed
+                closeClaimModal();
                 isAdmin = data.is_admin;
-                // Store name and set greeting with random roast
                 localStorage.setItem('userName', data.name);
                 setUserGreeting(data.name);
                 updateNavTabs();
@@ -1423,6 +1540,13 @@
                 errorEl.textContent = 'Connection error';
                 errorEl.classList.remove('hidden');
             }
+        }
+
+        function closeClaimModal() {
+            document.getElementById('claim-modal').classList.add('hidden');
+            document.getElementById('claim-phone').value = '';
+            document.getElementById('claim-error').classList.add('hidden');
+            pendingClaimToken = null;
         }
 
         // ============ Players & Ratings ============
@@ -1529,18 +1653,6 @@
 
             container.innerHTML = html;
             visibleCount = toShow;
-
-            // Show end-of-list indicator at bottom of visible list
-            if (allPlayers.length > 0) {
-                const endIndicator = document.createElement('div');
-                endIndicator.className = 'end-of-list-indicator';
-                if (visibleCount >= allPlayers.length) {
-                    endIndicator.innerHTML = '— End of list —';
-                } else {
-                    endIndicator.innerHTML = 'Load for more...';
-                }
-                container.appendChild(endIndicator);
-            }
 
             // Always show controls when there are players
             if (allPlayers.length > 0) {

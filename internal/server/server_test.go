@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -83,17 +84,19 @@ func decodeResponse(w *httptest.ResponseRecorder, v interface{}) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-// loginAsPlayer logs in and returns the session cookie
+// loginAsPlayer creates a session cookie directly for testing (bypasses HTTP)
 func loginAsPlayer(phone string) *http.Cookie {
-	req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-		"phone": phone,
-	})
-	w := httptest.NewRecorder()
-	testServer.ServeHTTP(w, req)
-	Expect(w.Code).To(Equal(http.StatusOK))
-	cookies := w.Result().Cookies()
-	Expect(cookies).To(HaveLen(1))
-	return cookies[0]
+	// Look up the player ID by phone
+	var playerID int
+	err := database.DB.QueryRow(`SELECT id FROM players WHERE phone = ?`, phone).Scan(&playerID)
+	Expect(err).NotTo(HaveOccurred(), "Player with phone %s not found", phone)
+
+	// Create session token directly
+	sessionValue := createSessionToken(playerID)
+	return &http.Cookie{
+		Name:  "ff_session",
+		Value: sessionValue,
+	}
 }
 
 // submitRating submits a single rating for a player (uses batch endpoint)
@@ -173,8 +176,8 @@ var _ = Describe("HTTP Endpoints", func() {
 		})
 
 		It("returns 405 for wrong HTTP method on API endpoints", func() {
-			// Test POST endpoint with GET
-			req := httptest.NewRequest("DELETE", "/api/auth/login", nil)
+			// Test POST endpoint with DELETE
+			req := httptest.NewRequest("DELETE", "/api/auth/google", nil)
 			w := httptest.NewRecorder()
 			testServer.ServeHTTP(w, req)
 
@@ -182,80 +185,37 @@ var _ = Describe("HTTP Endpoints", func() {
 		})
 	})
 
-	Describe("POST /api/auth/login", func() {
-		When("phone number is valid and exists", func() {
-			It("returns player info and sets session cookie", func() {
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "+972501111111",
+	Describe("POST /api/auth/google", func() {
+		// Note: Full Google OAuth tests would require mocking the token verification.
+		// These tests verify the endpoint exists and handles basic validation.
+
+		When("request is invalid", func() {
+			It("returns bad request for empty id_token", func() {
+				req := makeJSONRequest("POST", "/api/auth/google", map[string]string{
+					"id_token": "",
 				})
 				w := httptest.NewRecorder()
 				testServer.ServeHTTP(w, req)
 
-				Expect(w.Code).To(Equal(http.StatusOK))
-
-				var resp map[string]interface{}
-				decodeResponse(w, &resp)
-				Expect(resp["name"]).To(Equal("Omer"))
-				Expect(resp["player_id"]).To(BeNumerically(">", 0))
-				Expect(resp["is_admin"]).To(BeFalse())
-
-				cookies := w.Result().Cookies()
-				Expect(cookies).To(HaveLen(1))
-				Expect(cookies[0].Name).To(Equal("ff_session"))
+				Expect(w.Code).To(Equal(http.StatusBadRequest))
 			})
 
-			It("returns is_admin true for admin users", func() {
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "+972509090909",
-				})
+			It("returns bad request for missing body", func() {
+				req := httptest.NewRequest("POST", "/api/auth/google", nil)
 				w := httptest.NewRecorder()
 				testServer.ServeHTTP(w, req)
 
-				Expect(w.Code).To(Equal(http.StatusOK))
-
-				var resp map[string]interface{}
-				decodeResponse(w, &resp)
-				Expect(resp["name"]).To(Equal("Admin"))
-				Expect(resp["is_admin"]).To(BeTrue())
+				Expect(w.Code).To(Equal(http.StatusBadRequest))
 			})
 		})
+	})
 
-		When("phone number has dashes", func() {
-			It("normalizes and finds the player", func() {
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "+972-50-111-1111",
-				})
-				w := httptest.NewRecorder()
-				testServer.ServeHTTP(w, req)
-
-				Expect(w.Code).To(Equal(http.StatusOK))
-				var resp map[string]interface{}
-				decodeResponse(w, &resp)
-				Expect(resp["name"]).To(Equal("Omer"))
-			})
-		})
-
-		When("phone number is local format (10 digits)", func() {
-			It("finds the player", func() {
-				addTestPlayer("Local", "0501234567", `[]`)
-
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "0501234567",
-				})
-				w := httptest.NewRecorder()
-				testServer.ServeHTTP(w, req)
-
-				Expect(w.Code).To(Equal(http.StatusOK))
-				var resp map[string]interface{}
-				decodeResponse(w, &resp)
-				Expect(resp["name"]).To(Equal("Local"))
-			})
-		})
-
-		When("phone number is invalid length", func() {
-			It("returns bad request for too short", func() {
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "12345",
+	Describe("POST /api/auth/claim", func() {
+		When("request is invalid", func() {
+			It("returns bad request for empty claim_token", func() {
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": "",
+					"phone":       "0501234567",
 				})
 				w := httptest.NewRecorder()
 				testServer.ServeHTTP(w, req)
@@ -263,49 +223,190 @@ var _ = Describe("HTTP Endpoints", func() {
 				Expect(w.Code).To(Equal(http.StatusBadRequest))
 				var resp map[string]string
 				decodeResponse(w, &resp)
-				Expect(resp["error"]).To(ContainSubstring("10 digits"))
+				Expect(resp["error"]).To(ContainSubstring("claim_token"))
 			})
 
-			It("returns bad request for too long", func() {
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "+97250123456789999",
+			It("returns bad request for empty phone", func() {
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": "some-token",
+					"phone":       "",
 				})
 				w := httptest.NewRecorder()
 				testServer.ServeHTTP(w, req)
 
 				Expect(w.Code).To(Equal(http.StatusBadRequest))
+				var resp map[string]string
+				decodeResponse(w, &resp)
+				Expect(resp["error"]).To(ContainSubstring("phone"))
 			})
-		})
 
-		When("phone number does not exist", func() {
-			It("returns unauthorized", func() {
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "+972599999999",
+			It("returns bad request for missing body", func() {
+				req := httptest.NewRequest("POST", "/api/auth/claim", nil)
+				w := httptest.NewRecorder()
+				testServer.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusBadRequest))
+			})
+
+			It("returns unauthorized for invalid claim token", func() {
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": "invalid-token-that-doesnt-exist",
+					"phone":       "0501234567",
 				})
 				w := httptest.NewRecorder()
 				testServer.ServeHTTP(w, req)
 
 				Expect(w.Code).To(Equal(http.StatusUnauthorized))
+				var resp map[string]string
+				decodeResponse(w, &resp)
+				Expect(resp["error"]).To(ContainSubstring("Invalid or expired"))
 			})
 		})
 
-		When("request is invalid", func() {
-			It("returns bad request for empty phone", func() {
-				req := makeJSONRequest("POST", "/api/auth/login", map[string]string{
-					"phone": "",
+		When("claim token is valid", func() {
+			var validToken string
+
+			BeforeEach(func() {
+				// Manually inject a valid claim token for testing
+				validToken = generateClaimToken()
+				claimTokens[validToken] = claimTokenData{
+					Email:     "test@example.com",
+					Name:      "Test User",
+					ExpiresAt: time.Now().Add(10 * time.Minute),
+				}
+			})
+
+			AfterEach(func() {
+				// Clean up claim tokens
+				delete(claimTokens, validToken)
+			})
+
+			It("successfully claims account with valid phone", func() {
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": validToken,
+					"phone":       "+972501111111", // Omer's phone
 				})
 				w := httptest.NewRecorder()
 				testServer.ServeHTTP(w, req)
 
-				Expect(w.Code).To(Equal(http.StatusBadRequest))
+				Expect(w.Code).To(Equal(http.StatusOK))
+				var resp map[string]interface{}
+				decodeResponse(w, &resp)
+				Expect(resp["status"]).To(Equal("claimed"))
+				Expect(resp["name"]).To(Equal("Omer"))
+				Expect(resp["player_id"]).To(BeEquivalentTo(1))
+
+				// Verify session cookie is set
+				cookies := w.Result().Cookies()
+				var sessionCookie *http.Cookie
+				for _, c := range cookies {
+					if c.Name == "ff_session" {
+						sessionCookie = c
+						break
+					}
+				}
+				Expect(sessionCookie).NotTo(BeNil())
+				Expect(sessionCookie.Value).NotTo(BeEmpty())
+
+				// Verify email was saved
+				player, err := getPlayerByEmail("test@example.com")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(player.Name).To(Equal("Omer"))
 			})
 
-			It("returns bad request for invalid JSON", func() {
-				req := httptest.NewRequest("POST", "/api/auth/login", nil)
+			It("normalizes phone number with hyphens", func() {
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": validToken,
+					"phone":       "+972-501-111-111",
+				})
 				w := httptest.NewRecorder()
 				testServer.ServeHTTP(w, req)
 
-				Expect(w.Code).To(Equal(http.StatusBadRequest))
+				Expect(w.Code).To(Equal(http.StatusOK))
+				var resp map[string]interface{}
+				decodeResponse(w, &resp)
+				Expect(resp["status"]).To(Equal("claimed"))
+			})
+
+			It("returns not found for unknown phone", func() {
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": validToken,
+					"phone":       "+972599999999", // Non-existent phone
+				})
+				w := httptest.NewRecorder()
+				testServer.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusNotFound))
+				var resp map[string]string
+				decodeResponse(w, &resp)
+				Expect(resp["error"]).To(ContainSubstring("No player found"))
+			})
+
+			It("prevents account hijacking when email already linked", func() {
+				// First, link an email to Omer's account
+				_, err := database.DB.Exec(`UPDATE players SET email = 'existing@example.com' WHERE phone = '+972501111111'`)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Now try to claim with a different Google account
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": validToken,
+					"phone":       "+972501111111",
+				})
+				w := httptest.NewRecorder()
+				testServer.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusConflict))
+				var resp map[string]string
+				decodeResponse(w, &resp)
+				Expect(resp["error"]).To(ContainSubstring("already linked"))
+			})
+
+			It("invalidates claim token after use (one-time use)", func() {
+				// First claim should succeed
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": validToken,
+					"phone":       "+972502222222", // Dan's phone (different player)
+				})
+				w := httptest.NewRecorder()
+				testServer.ServeHTTP(w, req)
+				Expect(w.Code).To(Equal(http.StatusOK))
+
+				// Second claim with same token should fail
+				req2 := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": validToken,
+					"phone":       "+972503333333", // Niv's phone
+				})
+				w2 := httptest.NewRecorder()
+				testServer.ServeHTTP(w2, req2)
+
+				Expect(w2.Code).To(Equal(http.StatusUnauthorized))
+				var resp map[string]string
+				decodeResponse(w2, &resp)
+				Expect(resp["error"]).To(ContainSubstring("Invalid or expired"))
+			})
+		})
+
+		When("claim token is expired", func() {
+			It("rejects expired claim token", func() {
+				expiredToken := generateClaimToken()
+				claimTokens[expiredToken] = claimTokenData{
+					Email:     "expired@example.com",
+					Name:      "Expired User",
+					ExpiresAt: time.Now().Add(-1 * time.Minute), // Already expired
+				}
+				defer delete(claimTokens, expiredToken)
+
+				req := makeJSONRequest("POST", "/api/auth/claim", map[string]string{
+					"claim_token": expiredToken,
+					"phone":       "+972501111111",
+				})
+				w := httptest.NewRecorder()
+				testServer.ServeHTTP(w, req)
+
+				Expect(w.Code).To(Equal(http.StatusUnauthorized))
+				var resp map[string]string
+				decodeResponse(w, &resp)
+				Expect(resp["error"]).To(ContainSubstring("expired"))
 			})
 		})
 	})

@@ -418,7 +418,7 @@ func ResolvePlayersFromDB(extractedNames []string) (*ParseResult, error) {
 // getAllPlayers fetches all players from the database.
 func getAllPlayers() ([]database.Player, error) {
 	rows, err := database.DB.Query(`
-		SELECT id, name, phone, nickname_aliases, base_skill_rating, base_fitness_rating
+		SELECT id, name, phone, email, nickname_aliases, base_skill_rating, base_fitness_rating
 		FROM players
 	`)
 	if err != nil {
@@ -429,7 +429,7 @@ func getAllPlayers() ([]database.Player, error) {
 	var players []database.Player
 	for rows.Next() {
 		var p database.Player
-		if err := rows.Scan(&p.ID, &p.Name, &p.Phone, &p.NicknameAliases, &p.BaseSkillRating, &p.BaseFitnessRating); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Phone, &p.Email, &p.NicknameAliases, &p.BaseSkillRating, &p.BaseFitnessRating); err != nil {
 			return nil, err
 		}
 		players = append(players, p)
