@@ -26,7 +26,7 @@
 //	  - Submit batch of anonymous ratings for players
 //	  - Requires: session cookie
 //	  - Body: [{"target_id": 2, "skill_rating": 7, "fitness_category": "Good"}, ...]
-//	  - fitness_category: "Low" (1), "Poor" (2), "Average" (3), "Good" (4), "Excellent" (5)
+//	  - fitness_category: "Low" (1), "Ok" (2), "Good" (3), "Great" (4), "Excellent" (5)
 //	  - Response: {"success": true, "saved_count": 5}
 //
 // ## Admin Dashboard (requires is_admin=1)

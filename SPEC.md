@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS anonymous_ratings (
     "base_skill_rating": 7.5,
     "base_fitness_rating": 2.0,
     "my_skill_rating": 8,        // null if not rated
-    "my_fitness_rating": "Good"  // "Poor" | "Normal" | "Good" | null
+    "my_fitness_rating": "Good"  // "Low" | "Ok" | "Good" | "Great" | "Excellent" | null
   }
 ]
 ```
@@ -244,7 +244,7 @@ CREATE TABLE IF NOT EXISTS anonymous_ratings (
 - Each player card shows:
   - Name and tier badge
   - Skill slider (1-10) with numeric display
-  - Fitness toggle ("Poor" | "Fine" | "Good")
+  - Fitness dropdown ("Low" | "Ok" | "Good" | "Great" | "Excellent")
 - Ratings auto-save on change via batch endpoint
 - Mobile-optimized with responsive controls and touch-friendly sizing
 

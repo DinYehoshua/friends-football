@@ -71,22 +71,22 @@ var _ = Describe("Auth Handlers Unit Tests", func() {
 				Expect(val).To(Equal(database.FitnessLow))
 			})
 
-			It("maps 'Poor' to FitnessPoor", func() {
-				val, err := mapFitnessCategory("Poor")
+			It("maps 'Ok' to FitnessOk", func() {
+				val, err := mapFitnessCategory("Ok")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(val).To(Equal(database.FitnessPoor))
-			})
-
-			It("maps 'Average' to FitnessAverage", func() {
-				val, err := mapFitnessCategory("Average")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(val).To(Equal(database.FitnessAverage))
+				Expect(val).To(Equal(database.FitnessOk))
 			})
 
 			It("maps 'Good' to FitnessGood", func() {
 				val, err := mapFitnessCategory("Good")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(val).To(Equal(database.FitnessGood))
+			})
+
+			It("maps 'Great' to FitnessGreat", func() {
+				val, err := mapFitnessCategory("Great")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(val).To(Equal(database.FitnessGreat))
 			})
 
 			It("maps 'Excellent' to FitnessExcellent", func() {
@@ -104,9 +104,9 @@ var _ = Describe("Auth Handlers Unit Tests", func() {
 			})
 
 			It("trims whitespace", func() {
-				val, err := mapFitnessCategory("  Average  ")
+				val, err := mapFitnessCategory("  Good  ")
 				Expect(err).NotTo(HaveOccurred())
-				Expect(val).To(Equal(database.FitnessAverage))
+				Expect(val).To(Equal(database.FitnessGood))
 			})
 		})
 
@@ -130,25 +130,25 @@ var _ = Describe("Auth Handlers Unit Tests", func() {
 			Expect(mapFitnessToCategory(database.FitnessLow)).To(Equal("Low"))
 		})
 
-		It("maps FitnessPoor to 'Poor'", func() {
-			Expect(mapFitnessToCategory(database.FitnessPoor)).To(Equal("Poor"))
-		})
-
-		It("maps FitnessAverage to 'Average'", func() {
-			Expect(mapFitnessToCategory(database.FitnessAverage)).To(Equal("Average"))
+		It("maps FitnessOk to 'Ok'", func() {
+			Expect(mapFitnessToCategory(database.FitnessOk)).To(Equal("Ok"))
 		})
 
 		It("maps FitnessGood to 'Good'", func() {
 			Expect(mapFitnessToCategory(database.FitnessGood)).To(Equal("Good"))
 		})
 
+		It("maps FitnessGreat to 'Great'", func() {
+			Expect(mapFitnessToCategory(database.FitnessGreat)).To(Equal("Great"))
+		})
+
 		It("maps FitnessExcellent to 'Excellent'", func() {
 			Expect(mapFitnessToCategory(database.FitnessExcellent)).To(Equal("Excellent"))
 		})
 
-		It("defaults to 'Average' for unknown values", func() {
-			Expect(mapFitnessToCategory(0)).To(Equal("Average"))
-			Expect(mapFitnessToCategory(99)).To(Equal("Average"))
+		It("defaults to 'Ok' for unknown values", func() {
+			Expect(mapFitnessToCategory(0)).To(Equal("Ok"))
+			Expect(mapFitnessToCategory(99)).To(Equal("Ok"))
 		})
 	})
 })

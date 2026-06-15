@@ -18,18 +18,18 @@ func TestBalancer(t *testing.T) {
 // mockPlayers creates 12 test players with skill (1-10) and fitness (1-5) ratings.
 func mockPlayers() []balancer.Player {
 	return []balancer.Player{
-		{ID: 1, Name: "Player1", SkillRating: 8.0, FitnessRating: 3.0},   // Average
-		{ID: 2, Name: "Player2", SkillRating: 7.5, FitnessRating: 2.0},   // Poor
+		{ID: 1, Name: "Player1", SkillRating: 8.0, FitnessRating: 3.0},   // Good
+		{ID: 2, Name: "Player2", SkillRating: 7.5, FitnessRating: 2.0},   // Ok
 		{ID: 3, Name: "Player3", SkillRating: 6.0, FitnessRating: 1.0},   // Low
-		{ID: 4, Name: "Player4", SkillRating: 9.0, FitnessRating: 2.0},   // Poor
-		{ID: 5, Name: "Player5", SkillRating: 5.5, FitnessRating: 3.0},   // Average
-		{ID: 6, Name: "Player6", SkillRating: 7.0, FitnessRating: 2.0},   // Poor
+		{ID: 4, Name: "Player4", SkillRating: 9.0, FitnessRating: 2.0},   // Ok
+		{ID: 5, Name: "Player5", SkillRating: 5.5, FitnessRating: 3.0},   // Good
+		{ID: 6, Name: "Player6", SkillRating: 7.0, FitnessRating: 2.0},   // Ok
 		{ID: 7, Name: "Player7", SkillRating: 8.5, FitnessRating: 1.0},   // Low
-		{ID: 8, Name: "Player8", SkillRating: 6.5, FitnessRating: 3.0},   // Average
-		{ID: 9, Name: "Player9", SkillRating: 7.0, FitnessRating: 2.0},   // Poor
-		{ID: 10, Name: "Player10", SkillRating: 5.0, FitnessRating: 2.0}, // Poor
-		{ID: 11, Name: "Player11", SkillRating: 8.0, FitnessRating: 3.0}, // Average
-		{ID: 12, Name: "Player12", SkillRating: 6.0, FitnessRating: 2.0}, // Poor
+		{ID: 8, Name: "Player8", SkillRating: 6.5, FitnessRating: 3.0},   // Good
+		{ID: 9, Name: "Player9", SkillRating: 7.0, FitnessRating: 2.0},   // Ok
+		{ID: 10, Name: "Player10", SkillRating: 5.0, FitnessRating: 2.0}, // Ok
+		{ID: 11, Name: "Player11", SkillRating: 8.0, FitnessRating: 3.0}, // Good
+		{ID: 12, Name: "Player12", SkillRating: 6.0, FitnessRating: 2.0}, // Ok
 	}
 }
 

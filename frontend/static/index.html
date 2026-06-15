@@ -1259,9 +1259,9 @@
         // Fitness options (value = API integer, label = display text, description = full description)
         const FITNESS_OPTIONS = [
             { value: 1, label: 'Low', description: 'Struggles with continuous running' },
-            { value: 2, label: 'Poor', description: 'Tires quickly' },
-            { value: 3, label: 'Average', description: 'Standard match pace' },
-            { value: 4, label: 'Good', description: 'High work rate' },
+            { value: 2, label: 'Ok', description: 'Standard match pace' },
+            { value: 3, label: 'Good', description: 'Solid endurance' },
+            { value: 4, label: 'Great', description: 'High work rate' },
             { value: 5, label: 'Excellent', description: 'Tireless, peak stamina' }
         ];
 
@@ -1574,7 +1574,7 @@
                 allPlayers.forEach(p => {
                     if (p.my_skill_rating || p.my_fitness_rating) {
                         // Convert fitness string to integer value
-                        const fitnessValue = FITNESS_OPTIONS.find(f => f.label === p.my_fitness_rating)?.value || 3;
+                        const fitnessValue = FITNESS_OPTIONS.find(f => f.label === p.my_fitness_rating)?.value || 2;
                         ratings[p.id] = {
                             skill: p.my_skill_rating || 5,
                             fitness: fitnessValue
@@ -1616,8 +1616,8 @@
                     skillColorClass = 'skill-dormant';
                 }
 
-                // Fitness: dormant = default (3), active = show selection
-                const currentFitness = (isActive && r) ? r.fitness : 3;
+                // Fitness: dormant = default (2=Ok), active = show selection
+                const currentFitness = (isActive && r) ? r.fitness : 2;
 
                 html += `
                     <div class="roster-row ${stateClass}" data-player-id="${p.id}">
@@ -1737,7 +1737,7 @@
         // Activate a dormant player row
         function activatePlayer(playerId) {
             if (!ratings[playerId]) {
-                ratings[playerId] = { skill: 5, fitness: 3 }; // Default fitness: 3 (Average)
+                ratings[playerId] = { skill: 5, fitness: 2 }; // Default fitness: 2 (Ok)
             }
 
             if (!touched.has(playerId)) {
@@ -1814,7 +1814,7 @@
                 const r = ratings[p.id];
                 if (r) {
                     // Convert fitness integer to label for API
-                    const fitnessLabel = FITNESS_OPTIONS.find(f => f.value === r.fitness)?.label || 'Average';
+                    const fitnessLabel = FITNESS_OPTIONS.find(f => f.value === r.fitness)?.label || 'Ok';
                     batch.push({
                         target_id: p.id,
                         skill_rating: r.skill,
@@ -2574,10 +2574,10 @@
             document.querySelectorAll('.player-input-card[data-unrecognized="true"]').forEach(card => {
                 const fitnessSelect = card.querySelector('.fitness-select-compact');
                 if (showFitness && !fitnessSelect) {
-                    // Add fitness select - get current fitness value from data or default to 3 (Average)
+                    // Add fitness select - get current fitness value from data or default to 2 (Ok)
                     const inlineControls = card.querySelector('.inline-controls');
                     if (inlineControls) {
-                        const existingFitness = parseInt(card.dataset.fitness) || 3;
+                        const existingFitness = parseInt(card.dataset.fitness) || 2;
                         const fitnessHtml = `
                             <select class="fitness-select-compact" onchange="setUnrecognizedFitness(${card.dataset.index}, this.value)" data-index="${card.dataset.index}">
                                 ${FITNESS_OPTIONS.map(f => `
@@ -3311,7 +3311,7 @@
                     allPlayers.forEach(p => {
                         if (p.my_skill_rating || p.my_fitness_rating) {
                             // Convert fitness string from API to integer value
-                            const fitnessValue = FITNESS_OPTIONS.find(f => f.label === p.my_fitness_rating)?.value || 3;
+                            const fitnessValue = FITNESS_OPTIONS.find(f => f.label === p.my_fitness_rating)?.value || 2;
                             ratings[p.id] = {
                                 skill: p.my_skill_rating || 5,
                                 fitness: fitnessValue

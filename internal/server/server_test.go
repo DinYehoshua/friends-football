@@ -558,8 +558,8 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("submitting valid batch ratings", func() {
 			It("saves successfully and returns saved_count", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
-					{"target_id": 3, "skill_rating": 8, "fitness_category": "Good"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Good"},
+					{"target_id": 3, "skill_rating": 8, "fitness_category": "Great"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -583,9 +583,9 @@ var _ = Describe("HTTP Endpoints", func() {
 			It("accepts all fitness categories", func() {
 				ratings := []map[string]interface{}{
 					{"target_id": 2, "skill_rating": 5, "fitness_category": "Low"},
-					{"target_id": 3, "skill_rating": 5, "fitness_category": "Poor"},
-					{"target_id": 4, "skill_rating": 5, "fitness_category": "AVERAGE"},
-					{"target_id": 5, "skill_rating": 5, "fitness_category": "good"},
+					{"target_id": 3, "skill_rating": 5, "fitness_category": "Ok"},
+					{"target_id": 4, "skill_rating": 5, "fitness_category": "GOOD"},
+					{"target_id": 5, "skill_rating": 5, "fitness_category": "great"},
 					{"target_id": 6, "skill_rating": 5, "fitness_category": "Excellent"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
@@ -594,8 +594,8 @@ var _ = Describe("HTTP Endpoints", func() {
 			})
 
 			It("updates existing ratings (upsert)", func() {
-				submitRating(sessionCookie, 2, 5, "Poor")
-				submitRating(sessionCookie, 2, 9, "Good")
+				submitRating(sessionCookie, 2, 5, "Ok")
+				submitRating(sessionCookie, 2, 9, "Great")
 
 				req := httptest.NewRequest("GET", "/api/players", nil)
 				req.AddCookie(sessionCookie)
@@ -613,14 +613,14 @@ var _ = Describe("HTTP Endpoints", func() {
 					}
 				}
 				Expect(dan["my_skill_rating"]).To(BeEquivalentTo(9))
-				Expect(dan["my_fitness_rating"]).To(Equal("Good"))
+				Expect(dan["my_fitness_rating"]).To(Equal("Great"))
 			})
 
 			It("persists all ratings after GET /api/players", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Good"},
-					{"target_id": 3, "skill_rating": 8, "fitness_category": "Poor"},
-					{"target_id": 4, "skill_rating": 6, "fitness_category": "Average"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Great"},
+					{"target_id": 3, "skill_rating": 8, "fitness_category": "Ok"},
+					{"target_id": 4, "skill_rating": 6, "fitness_category": "Good"},
 				}
 				submitBatchRatings(sessionCookie, ratings)
 
@@ -645,8 +645,8 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("batch contains invalid rating", func() {
 			It("rejects self-rating", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
-					{"target_id": 1, "skill_rating": 10, "fitness_category": "Good"}, // Self-rating
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Good"},
+					{"target_id": 1, "skill_rating": 10, "fitness_category": "Great"}, // Self-rating
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -658,7 +658,7 @@ var _ = Describe("HTTP Endpoints", func() {
 
 			It("rejects invalid target_id", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 0, "skill_rating": 7, "fitness_category": "Average"},
+					{"target_id": 0, "skill_rating": 7, "fitness_category": "Good"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -670,7 +670,7 @@ var _ = Describe("HTTP Endpoints", func() {
 
 			It("rejects skill_rating out of range", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 11, "fitness_category": "Average"},
+					{"target_id": 2, "skill_rating": 11, "fitness_category": "Good"},
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -694,8 +694,8 @@ var _ = Describe("HTTP Endpoints", func() {
 
 			It("includes index in error message", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
-					{"target_id": 3, "skill_rating": 15, "fitness_category": "Good"}, // Invalid at index 1
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Good"},
+					{"target_id": 3, "skill_rating": 15, "fitness_category": "Great"}, // Invalid at index 1
 				}
 				w := submitBatchRatings(sessionCookie, ratings)
 
@@ -709,7 +709,7 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("request is malformed", func() {
 			It("rejects non-array body", func() {
 				req := makeJSONRequest("POST", "/api/ratings", map[string]interface{}{
-					"target_id": 2, "skill_rating": 7, "fitness_category": "Average",
+					"target_id": 2, "skill_rating": 7, "fitness_category": "Good",
 				})
 				req.AddCookie(sessionCookie)
 				w := httptest.NewRecorder()
@@ -722,7 +722,7 @@ var _ = Describe("HTTP Endpoints", func() {
 		When("not authenticated", func() {
 			It("returns unauthorized", func() {
 				ratings := []map[string]interface{}{
-					{"target_id": 2, "skill_rating": 7, "fitness_category": "Average"},
+					{"target_id": 2, "skill_rating": 7, "fitness_category": "Good"},
 				}
 				req := makeJSONRequest("POST", "/api/ratings", ratings)
 				w := httptest.NewRecorder()

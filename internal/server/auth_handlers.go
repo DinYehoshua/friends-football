@@ -120,7 +120,7 @@ type PlayerResponse struct {
 	Tier int    `json:"tier"` // 1=Core, 2=Regular, 3=Occasional, 4=Rare
 	// Voter's existing ratings for this player (null if not rated)
 	MySkillRating   *int    `json:"my_skill_rating,omitempty"`
-	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Low", "Poor", "Average", "Good", "Excellent"
+	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Low", "Ok", "Good", "Great", "Excellent"
 }
 
 // handleGetPlayers returns all players except the logged-in user, with voter's existing ratings.
@@ -183,16 +183,16 @@ func mapFitnessToCategory(fitness int) string {
 	switch fitness {
 	case database.FitnessLow:
 		return "Low"
-	case database.FitnessPoor:
-		return "Poor"
-	case database.FitnessAverage:
-		return "Average"
+	case database.FitnessOk:
+		return "Ok"
 	case database.FitnessGood:
 		return "Good"
+	case database.FitnessGreat:
+		return "Great"
 	case database.FitnessExcellent:
 		return "Excellent"
 	default:
-		return "Average"
+		return "Ok"
 	}
 }
 
@@ -200,7 +200,7 @@ func mapFitnessToCategory(fitness int) string {
 type RatingRequest struct {
 	TargetID        int    `json:"target_id"`
 	SkillRating     int    `json:"skill_rating"`
-	FitnessCategory string `json:"fitness_category"` // "Very Poor", "Poor", "Average", "Good", "Excellent"
+	FitnessCategory string `json:"fitness_category"` // "Low", "Ok", "Good", "Great", "Excellent"
 }
 
 // handleSubmitRatings saves or updates multiple anonymous peer ratings in a single transaction.
@@ -305,16 +305,16 @@ func mapFitnessCategory(category string) (int, error) {
 	switch strings.ToLower(strings.TrimSpace(category)) {
 	case "low":
 		return database.FitnessLow, nil
-	case "poor":
-		return database.FitnessPoor, nil
-	case "average":
-		return database.FitnessAverage, nil
+	case "ok":
+		return database.FitnessOk, nil
 	case "good":
 		return database.FitnessGood, nil
+	case "great":
+		return database.FitnessGreat, nil
 	case "excellent":
 		return database.FitnessExcellent, nil
 	default:
-		return 0, fmt.Errorf("fitness_category must be 'Low', 'Poor', 'Average', 'Good', or 'Excellent'")
+		return 0, fmt.Errorf("fitness_category must be 'Low', 'Ok', 'Good', 'Great', or 'Excellent'")
 	}
 }
 
