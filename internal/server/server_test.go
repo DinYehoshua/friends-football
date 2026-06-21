@@ -1016,7 +1016,8 @@ var _ = Describe("HTTP Endpoints", func() {
 			})
 		})
 
-		When("authenticated as non-admin", func() {
+		// TEMPORARILY SKIPPED: Admin check is disabled
+		PWhen("authenticated as non-admin", func() {
 			It("returns forbidden", func() {
 				regularCookie := loginAsPlayer("+972501111111") // Non-admin user
 				players := makePlayerInputs(12, true)
@@ -1113,7 +1114,8 @@ var _ = Describe("HTTP Endpoints", func() {
 			})
 		})
 
-		When("authenticated as non-admin", func() {
+		// TEMPORARILY SKIPPED: Admin check is disabled
+		PWhen("authenticated as non-admin", func() {
 			It("returns forbidden", func() {
 				regularCookie := loginAsPlayer("+972501111111") // Non-admin user
 

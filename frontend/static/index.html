@@ -38,11 +38,6 @@
             min-height: 100vh;
             touch-action: pan-x pan-y;
         }
-        /* Disable page bounce only when Rate Friends view is active */
-        body.rate-view-active {
-            overscroll-behavior: none;
-            overflow: hidden;
-        }
         /* Admin tooltip */
         .admin-tooltip {
             position: fixed;
@@ -941,12 +936,36 @@
         </div>
 
         <!-- View C: Generate Kohot (Admin) -->
-        <div id="view-admin" class="view hidden p-4 max-w-4xl mx-auto pb-24">
+        <div id="view-admin" class="view hidden p-4 max-w-4xl mx-auto pb-6">
             <!-- Step 1: Upload -->
             <div id="admin-step-upload">
                 <div class="mb-6">
-                    <h2 class="text-xl font-semibold mb-1">Upload Your Friends</h2>
-                    <p class="text-text-secondary text-sm">Upload a WhatsApp chat or start manually to build your teams.</p>
+                    <h2 class="text-xl font-semibold mb-3">Upload Your Friends</h2>
+                    <div class="text-text-secondary text-sm">
+                        <p class="mb-2">Export your WhatsApp chat history:</p>
+                        <div class="bg-surface/50 rounded-lg p-3 space-y-2">
+                            <div class="flex items-start gap-2">
+                                <span class="text-accent font-medium">1.</span>
+                                <span>Open <strong class="text-text-primary">כדורגל חברים</strong> group in WhatsApp</span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-accent font-medium">2.</span>
+                                <span>Tap the group name to open settings</span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-accent font-medium">3.</span>
+                                <span>Scroll down and select <strong class="text-text-primary">Export Chat</strong></span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-accent font-medium">4.</span>
+                                <span>Choose <strong class="text-text-primary">Without Media</strong></span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-accent font-medium">5.</span>
+                                <span>Save the file and upload it below</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div
@@ -959,8 +978,8 @@
                 >
                     <input type="file" id="file-input" accept=".zip" class="hidden" onchange="handleFileSelect(event)">
                     <div class="text-4xl mb-4">📁</div>
-                    <p class="text-text-secondary">Drop WhatsApp chat .zip here</p>
-                    <p class="text-text-disabled text-sm mt-2">or click to browse</p>
+                    <p class="text-text-primary font-medium">Tap to upload your chat file</p>
+                    <p class="text-text-disabled text-sm mt-2">.zip file from WhatsApp export</p>
                 </div>
 
                 <!-- Or divider -->
@@ -1027,7 +1046,7 @@
 
             <!-- Step 2: Who Are They? (Resolve Unrecognized Players) -->
             <div id="admin-step-resolve" class="hidden">
-                <div class="flex items-center gap-3 mb-6">
+                <div class="flex items-center gap-3 mb-4">
                     <button
                         onclick="goBackToUploadFromResolve()"
                         class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
@@ -1039,6 +1058,11 @@
                         <h2 class="text-xl font-semibold mb-1">Who Are They?</h2>
                         <p class="text-text-secondary text-sm">Map unknown names to registered players or mark as guests.</p>
                     </div>
+                </div>
+
+                <!-- One-time note -->
+                <div class="bg-accent/10 border border-accent/30 rounded-lg px-4 py-3 mb-5">
+                    <p class="text-accent text-sm">This is a one-time setup. Once mapped, these names will be recognized automatically next time.</p>
                 </div>
 
                 <div class="roster-container p-5">
@@ -1278,9 +1302,6 @@
                 t.classList.add('text-text-secondary');
             });
 
-            // Toggle body class for Rate Friends view (locks page scroll)
-            document.body.classList.remove('rate-view-active');
-
             if (view === 'login') {
                 document.getElementById('view-login').classList.remove('hidden');
                 document.getElementById('nav-tabs').classList.add('hidden');
@@ -1289,9 +1310,8 @@
                 document.getElementById('nav-tabs').classList.remove('hidden');
                 document.getElementById('tab-rate').classList.add('text-accent', 'bg-accent/10');
                 document.getElementById('tab-rate').classList.remove('text-text-secondary');
-                document.body.classList.add('rate-view-active');
             } else if (view === 'admin') {
-                if (!isAdmin) return;
+                // Temporarily open for all users
                 document.getElementById('view-admin').classList.remove('hidden');
                 document.getElementById('nav-tabs').classList.remove('hidden');
                 document.getElementById('tab-admin').classList.add('text-accent', 'bg-accent/10');
@@ -1301,18 +1321,9 @@
 
         function updateNavTabs() {
             const adminTab = document.getElementById('tab-admin');
-            if (isAdmin) {
-                adminTab.classList.remove('text-text-disabled', 'cursor-not-allowed');
-                adminTab.classList.add('text-text-secondary', 'hover:text-text-primary');
-                adminTab.onclick = () => showView('admin');
-            } else {
-                adminTab.classList.add('text-text-disabled');
-                adminTab.classList.remove('text-text-secondary', 'hover:text-text-primary');
-                adminTab.onclick = (e) => {
-                    e.preventDefault();
-                    showAdminTooltip(adminTab);
-                };
-            }
+            // Temporarily open for all users
+            adminTab.classList.remove('text-text-disabled', 'cursor-not-allowed', 'hover:text-text-primary');
+            adminTab.onclick = () => showView('admin');
         }
 
         function showAdminTooltip(targetElement) {

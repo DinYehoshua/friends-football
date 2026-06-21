@@ -82,7 +82,7 @@ import (
 	"net/http"
 	"time"
 
-	"friends-football/internal/database"
+	_ "friends-football/internal/database" // Used in requireAdmin (temporarily disabled)
 )
 
 const (
@@ -181,27 +181,29 @@ func (s *Server) registerStaticFiles() {
 }
 
 // requireAdmin wraps a handler to enforce admin-only access.
+// TEMPORARILY DISABLED: Allow all authenticated users to access admin endpoints
 func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		playerID, err := getSessionPlayerID(r)
+		_, err := getSessionPlayerID(r)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "Not authenticated")
 			return
 		}
 
-		// Check if player is admin
-		var isAdmin bool
-		query := fmt.Sprintf(`SELECT is_admin FROM players WHERE id = %s`, database.Placeholder(1))
-		err = database.DB.QueryRow(query, playerID).Scan(&isAdmin)
-		if err != nil {
-			writeError(w, http.StatusUnauthorized, "Player not found")
-			return
-		}
-
-		if !isAdmin {
-			writeError(w, http.StatusForbidden, "Only the manager can do that!")
-			return
-		}
+		// TODO: Re-enable admin check when ready
+		// // Check if player is admin
+		// var isAdmin bool
+		// query := fmt.Sprintf(`SELECT is_admin FROM players WHERE id = %s`, database.Placeholder(1))
+		// err = database.DB.QueryRow(query, playerID).Scan(&isAdmin)
+		// if err != nil {
+		// 	writeError(w, http.StatusUnauthorized, "Player not found")
+		// 	return
+		// }
+		//
+		// if !isAdmin {
+		// 	writeError(w, http.StatusForbidden, "Only the manager can do that!")
+		// 	return
+		// }
 
 		next(w, r)
 	}
