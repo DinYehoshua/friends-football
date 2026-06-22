@@ -308,6 +308,10 @@
         #view-rate .roster-container::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
         }
+        /* Who's Playing - Player selection list hidden scrollbar */
+        #admin-step-manual > div.flex-1::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
         /* Rate Friends - Table header */
         #view-rate .roster-header {
             display: grid;
@@ -518,6 +522,105 @@
             color: #48484A;
             font-size: 11px;
             margin-bottom: 2px;
+        }
+        /* Player selection cards for Who's Playing */
+        .player-select-card {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: #1A1A1A;
+            border: 1px solid #2C2C2E;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .player-select-card:active {
+            transform: scale(0.98);
+        }
+        .player-select-card.selected {
+            border-color: #30D158;
+            background: rgba(48, 209, 88, 0.12);
+        }
+        .player-select-card.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .player-select-card .player-name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+            color: #FFFFFF;
+        }
+        .player-select-card .check-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #48484A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+        .player-select-card.selected .check-indicator {
+            background: #30D158;
+            border-color: #30D158;
+        }
+        .player-select-card .check-indicator::after {
+            content: '';
+            width: 5px;
+            height: 9px;
+            border: solid #000;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) translateY(-1px);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .player-select-card.selected .check-indicator::after {
+            opacity: 1;
+        }
+        /* Guest counter widget for Who's Playing */
+        .guest-counter-widget {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #1A1A1A;
+            border-radius: 10px;
+            padding: 4px 6px;
+        }
+        .guest-counter-widget .counter-btn {
+            width: 36px;
+            height: 36px;
+        }
+        .guest-counter-widget .guest-count {
+            width: 28px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        /* Selection counter badge */
+        .selection-counter {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .selection-counter .count {
+            color: #30D158;
+        }
+        .selection-counter .max {
+            color: #8E8E93;
+        }
+        .selection-counter.complete .count {
+            color: #30D158;
+        }
+        .selection-counter.over .count {
+            color: #FF453A;
         }
         .player-input-card:focus-within {
             border-color: #30D158;
@@ -816,6 +919,10 @@
             #view-rate {
                 height: calc(100vh - 100px) !important;
             }
+            /* Manual selection view - adjust for taller mobile nav */
+            #view-manual-selection {
+                height: calc(100vh - 100px) !important;
+            }
             /* Rate Friends - Roster header must match row columns */
             #view-rate .roster-header {
                 grid-template-columns: 1fr 90px 110px;
@@ -1020,38 +1127,9 @@
                 <p id="upload-error" class="text-red-500 text-sm text-center mt-4 hidden whitespace-pre-line"></p>
             </div>
 
-            <!-- Step 1b: Who's Playing? (Manual Selection) -->
+            <!-- Step 1b: Who's Playing? (Player Selection) - Separate view-like structure -->
             <div id="admin-step-manual" class="hidden">
-                <div class="flex items-center gap-3 mb-6">
-                    <button
-                        onclick="goBackFromManualSelection()"
-                        class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
-                        aria-label="Go back"
-                    >
-                        ←
-                    </button>
-                    <div>
-                        <h2 class="text-xl font-semibold mb-1">Who's Playing?</h2>
-                        <p class="text-text-secondary text-sm">Pick 12 players for this week's match.</p>
-                    </div>
-                </div>
-
-                <div class="roster-container p-5">
-                    <div id="manual-selection-slots" class="grid grid-cols-2 gap-3">
-                        <!-- 12 autocomplete slots rendered here -->
-                    </div>
-                </div>
-
-                <button
-                    id="manual-continue-btn"
-                    onclick="continueFromManualSelection()"
-                    class="w-full btn-primary py-3 mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled
-                >
-                    Continue
-                </button>
-
-                <p id="manual-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+                <!-- This will be shown as a full-height flex container -->
             </div>
 
             <!-- Step 2: Who Are They? (Resolve Unrecognized Players) -->
@@ -1252,6 +1330,88 @@
                 </div>
             </div>
         </div>
+
+        <!-- View D: Who's Playing? (Player Selection) - Flexbox layout -->
+        <div id="view-manual-selection" class="view hidden flex flex-col overflow-hidden" style="height: calc(100vh - 56px);">
+            <!-- Header (flex-shrink-0) -->
+            <div id="manual-selection-header" class="flex-shrink-0 bg-pitch border-b border-border">
+                <div class="max-w-2xl mx-auto px-4 pt-3 pb-3">
+                    <div class="flex items-center gap-3 mb-2">
+                        <button
+                            onclick="goBackFromManualSelection()"
+                            class="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
+                            aria-label="Go back"
+                        >
+                            ←
+                        </button>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-xl font-semibold">Who's Playing?</h2>
+                                <div class="selection-counter" id="selection-counter">
+                                    <span class="count" id="selection-count">0</span>
+                                    <span class="max">/ 12</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Search input with clear button -->
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="player-search-input"
+                            placeholder="Search players..."
+                            class="w-full bg-[#1A1A1A] border border-border rounded-lg px-3 py-2 pr-8 text-sm focus:border-accent focus:outline-none transition-colors"
+                            oninput="onSearchInput()"
+                        >
+                        <button
+                            id="search-clear-btn"
+                            onclick="clearSearch()"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors hidden"
+                            aria-label="Clear search"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scrollable player list (flex: 1, overflow-y: auto, min-height: 0 for flexbox fix) -->
+            <div id="manual-selection-content" class="flex-1 overflow-y-auto min-h-0">
+                <div class="max-w-2xl mx-auto px-4 pt-3 pb-2">
+                    <div id="player-selection-list" class="space-y-1.5">
+                        <!-- Player cards rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer (flex-shrink-0) -->
+            <div id="manual-selection-footer" class="flex-shrink-0 bg-pitch border-t border-border">
+                <div class="max-w-2xl mx-auto px-4 py-3">
+                    <!-- Guest counter row -->
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <div class="text-sm font-medium text-text-primary">Guests</div>
+                            <div class="text-xs text-text-secondary">Players not in the system</div>
+                        </div>
+                        <div class="guest-counter-widget">
+                            <button class="counter-btn minus" onclick="adjustGuestCount(-1)">−</button>
+                            <span class="guest-count" id="guest-count">0</span>
+                            <button class="counter-btn plus" onclick="adjustGuestCount(1)">+</button>
+                        </div>
+                    </div>
+                    <!-- Continue button -->
+                    <button
+                        id="manual-continue-btn"
+                        onclick="continueFromManualSelection()"
+                        class="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        Continue
+                    </button>
+                    <p id="manual-error" class="text-red-500 text-sm text-center mt-2 hidden"></p>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Toast Notification -->
@@ -1288,7 +1448,8 @@
         let parsedPlayers = [];         // Full players array from upload (for passing to edit step)
         let cameFromResolveStep = false; // Track navigation path for back button
         let cameFromManualStep = false;  // Track if we came from manual selection step
-        let manualSelections = [];       // Array of 12 selected players for manual flow
+        let selectedPlayers = new Set(); // Set of selected player IDs for manual flow
+        let guestCount = 0;              // Number of guests to add
 
         // Fitness options (value = API integer, label = display text, description = full description)
         const FITNESS_OPTIONS = [
@@ -2038,349 +2199,210 @@
                 }
             }
 
-            // Initialize empty selections
-            manualSelections = Array(12).fill(null);
+            // Reset selection state
+            selectedPlayers = new Set();
+            guestCount = 0;
 
-            // Show manual selection step
-            document.getElementById('admin-step-upload').classList.add('hidden');
-            document.getElementById('admin-step-manual').classList.remove('hidden');
+            // Clear search input
+            document.getElementById('player-search-input').value = '';
 
-            renderManualSelectionSlots();
+            // Hide all views and show manual selection view (top-level view like rate/admin)
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-manual-selection').classList.remove('hidden');
+            // Keep nav tabs visible with admin tab highlighted
+            document.getElementById('nav-tabs').classList.remove('hidden');
+            document.getElementById('tab-admin').classList.add('text-accent', 'bg-accent/10');
+            document.getElementById('tab-admin').classList.remove('text-text-secondary');
+            document.getElementById('tab-rate').classList.remove('text-accent', 'bg-accent/10');
+            document.getElementById('tab-rate').classList.add('text-text-secondary');
+
+            renderPlayerSelectionList();
+            updateSelectionCounter();
         }
 
-        function renderManualSelectionSlots() {
-            const container = document.getElementById('manual-selection-slots');
-            let html = '';
+        function renderPlayerSelectionList() {
+            const container = document.getElementById('player-selection-list');
+            const searchQuery = (document.getElementById('player-search-input')?.value || '').trim().toLowerCase();
 
-            for (let i = 0; i < 12; i++) {
-                const selection = manualSelections[i];
-                const value = selection ? selection.name : '';
-                const hasSelection = selection && selection.id > 0;
-
-                html += `
-                    <div class="selection-slot">
-                        <div class="selection-slot-number">#${i + 1}</div>
-                        <div class="autocomplete-wrapper">
-                            <input
-                                type="text"
-                                class="autocomplete-input${hasSelection ? ' has-selection' : ''}"
-                                placeholder="Type name or search..."
-                                value="${escapeHtml(value)}"
-                                data-slot-index="${i}"
-                                oninput="handleAutocompleteInput(${i}, this)"
-                                onfocus="handleAutocompleteFocus(${i})"
-                                onkeydown="handleAutocompleteKeydown(event, ${i})"
-                                tabindex="${i + 1}"
-                            >
-                            <div id="autocomplete-dropdown-${i}" class="autocomplete-dropdown"></div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            container.innerHTML = html;
-            validateManualSelections();
-
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', closeAllDropdowns);
-        }
-
-        function handleAutocompleteInput(slotIndex, input) {
-            const query = input.value.trim().toLowerCase();
-
-            // Update selection state
-            if (query === '') {
-                manualSelections[slotIndex] = null;
-                input.classList.remove('has-selection');
-            } else {
-                // Check if it matches a player exactly
-                const exactMatch = allPlayers.find(p => p.name.toLowerCase() === query);
-                if (exactMatch && !isPlayerAlreadySelected(exactMatch.id, slotIndex)) {
-                    manualSelections[slotIndex] = {
-                        id: exactMatch.id,
-                        name: exactMatch.name,
-                        skill: 5.0,  // Will be fetched from DB during team generation
-                        fitness: 2.0
-                    };
-                    input.classList.add('has-selection');
-                } else {
-                    // Treat as guest
-                    manualSelections[slotIndex] = {
-                        id: -1,
-                        name: input.value.trim(),
-                        skill: 5.0,
-                        fitness: 2.0
-                    };
-                    input.classList.remove('has-selection');
-                }
-            }
-
-            showAutocompleteDropdown(slotIndex);
-            validateManualSelections();
-        }
-
-        // Handle autocomplete input focus with smart scroll for mobile keyboards
-        function handleAutocompleteFocus(slotIndex) {
-            // Show dropdown immediately
-            showAutocompleteDropdown(slotIndex);
-
-            // Only apply smart scroll on mobile devices
-            if (window.innerWidth > 768) return;
-
-            // Delay to allow virtual keyboard to fully deploy and resize viewport
-            setTimeout(() => {
-                const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
-                const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
-                const wrapper = input.closest('.autocomplete-wrapper');
-
-                if (!input || !dropdown) return;
-
-                const isDropUp = dropdown.classList.contains('drop-up');
-                const topMargin = 10;
-
-                if (isDropUp) {
-                    // For upward dropdowns (bottom inputs): scroll so dropdown top is near screen top
-                    // The dropdown appears above the input, so we need to calculate where its top would be
-                    const dropdownHeight = dropdown.offsetHeight || 200; // Estimate if not rendered yet
-                    const inputRect = input.getBoundingClientRect();
-                    const currentScrollY = window.scrollY;
-
-                    // Calculate where the top of the dropdown is in document coordinates
-                    const dropdownTopInDoc = currentScrollY + inputRect.top - dropdownHeight;
-
-                    // Scroll so dropdown top is near the top of the screen
-                    const targetScroll = dropdownTopInDoc - topMargin;
-
-                    window.scrollTo({
-                        top: Math.max(0, targetScroll),
-                        behavior: 'smooth'
-                    });
-                } else {
-                    // For downward dropdowns (top inputs): scroll so input is near screen top
-                    const wrapperRect = wrapper.getBoundingClientRect();
-                    const currentScrollY = window.scrollY;
-
-                    // Calculate target scroll position to put wrapper near top
-                    const targetScroll = currentScrollY + wrapperRect.top - topMargin;
-
-                    window.scrollTo({
-                        top: Math.max(0, targetScroll),
-                        behavior: 'smooth'
-                    });
-                }
-            }, 300);
-        }
-
-        function showAutocompleteDropdown(slotIndex) {
-            // Close all other dropdowns first
-            for (let i = 0; i < 12; i++) {
-                if (i !== slotIndex) {
-                    closeDropdown(i);
-                }
-            }
-
-            const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
-            const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
-            const currentSelection = manualSelections[slotIndex];
-            const rawValue = input.value.trim().toLowerCase();
-
-            // If there's a selection and the input matches it exactly, show all players (user wants to change)
-            const isShowingSelectedValue = currentSelection && currentSelection.id > 0 &&
-                currentSelection.name.toLowerCase() === rawValue;
-            const query = isShowingSelectedValue ? '' : rawValue;
-
-            // Filter players
-            let filtered = allPlayers.filter(p => {
-                if (!query) return true;
-                return p.name.toLowerCase().includes(query);
-            });
-
-            // Sort: exact matches first, then alphabetically
-            filtered.sort((a, b) => {
-                if (query) {
-                    const aStartsWith = a.name.toLowerCase().startsWith(query);
-                    const bStartsWith = b.name.toLowerCase().startsWith(query);
-                    if (aStartsWith && !bStartsWith) return -1;
-                    if (!aStartsWith && bStartsWith) return 1;
-                }
+            // Sort players by tier (ascending) then by name
+            let sortedPlayers = [...allPlayers].sort((a, b) => {
+                if (a.tier !== b.tier) return a.tier - b.tier;
                 return a.name.localeCompare(b.name);
             });
 
-            if (filtered.length === 0) {
-                dropdown.innerHTML = `<div class="autocomplete-option guest-option" onclick="confirmGuestSelection(${slotIndex})">+ Add "${escapeHtml(input.value.trim())}" as guest</div>`;
+            // Filter by search query
+            if (searchQuery) {
+                sortedPlayers = sortedPlayers.filter(p =>
+                    p.name.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            let html = sortedPlayers.map(player => {
+                const isSelected = selectedPlayers.has(player.id);
+                const totalSelected = selectedPlayers.size + guestCount;
+                const isDisabled = !isSelected && totalSelected >= 12;
+
+                return `
+                    <div class="player-select-card${isSelected ? ' selected' : ''}${isDisabled ? ' disabled' : ''}"
+                         data-player-id="${player.id}"
+                         onclick="togglePlayerSelection(${player.id})">
+                        <span class="player-name">${escapeHtml(player.name)}</span>
+                        <div class="check-indicator"></div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+
+            // Update guest count display
+            document.getElementById('guest-count').textContent = guestCount;
+        }
+
+        function filterPlayerSelection() {
+            renderPlayerSelectionList();
+            // Reset scroll position to top when filtering
+            document.getElementById('manual-selection-content').scrollTop = 0;
+        }
+
+        function onSearchInput() {
+            const input = document.getElementById('player-search-input');
+            const clearBtn = document.getElementById('search-clear-btn');
+
+            // Show/hide clear button based on input value
+            if (input.value.length > 0) {
+                clearBtn.classList.remove('hidden');
             } else {
-                dropdown.innerHTML = filtered.map((player, idx) => {
-                    const isSelected = isPlayerAlreadySelected(player.id, slotIndex);
-                    const disabledClass = isSelected ? ' disabled' : '';
-                    return `
-                        <div class="autocomplete-option${disabledClass}"
-                             data-player-id="${player.id}"
-                             data-player-name="${escapeHtml(player.name)}"
-                             onmouseenter="highlightOption(this)"
-                             onclick="${isSelected ? '' : `selectAutocompleteOption(${slotIndex}, this)`}">
-                            ${escapeHtml(player.name)}
-                        </div>
-                    `;
-                }).join('');
+                clearBtn.classList.add('hidden');
             }
 
-            // Check if dropdown should open upward (for slots near bottom)
-            // In 2-column layout: slots 8,9,10,11 are in bottom 2 rows
-            // In 1-column layout (mobile): slots 9,10,11 are near bottom
-            const inputRect = input.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - inputRect.bottom;
-            const isBottomSlot = slotIndex >= 8; // Bottom 2 rows in 2-col, bottom 4 in 1-col
-            if (spaceBelow < 250 || isBottomSlot) {
-                dropdown.classList.add('drop-up');
+            filterPlayerSelection();
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('player-search-input');
+            const clearBtn = document.getElementById('search-clear-btn');
+
+            // Clear input and hide button
+            input.value = '';
+            clearBtn.classList.add('hidden');
+
+            // Restore full list
+            filterPlayerSelection();
+
+            // Focus back on input
+            input.focus();
+        }
+
+        function togglePlayerSelection(playerId) {
+            const totalSelected = selectedPlayers.size + guestCount;
+
+            if (selectedPlayers.has(playerId)) {
+                // Deselect
+                selectedPlayers.delete(playerId);
             } else {
-                dropdown.classList.remove('drop-up');
-            }
-
-            dropdown.classList.add('show');
-        }
-
-        function highlightOption(option) {
-            // Remove highlight from all options in this dropdown
-            const dropdown = option.closest('.autocomplete-dropdown');
-            dropdown.querySelectorAll('.autocomplete-option').forEach(opt => {
-                opt.classList.remove('highlighted');
-            });
-            // Highlight this one
-            option.classList.add('highlighted');
-        }
-
-        function isPlayerAlreadySelected(playerId, excludeSlot) {
-            return manualSelections.some((sel, idx) =>
-                idx !== excludeSlot && sel && sel.id === playerId && playerId > 0
-            );
-        }
-
-        function selectAutocompleteOption(slotIndex, option) {
-            const playerId = parseInt(option.dataset.playerId);
-            const playerName = option.dataset.playerName;
-
-            const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
-            input.value = playerName;
-            input.classList.add('has-selection');
-
-            manualSelections[slotIndex] = {
-                id: playerId,
-                name: playerName,
-                skill: 5.0,  // Will be fetched from DB during team generation
-                fitness: 2.0
-            };
-
-            closeDropdown(slotIndex);
-            input.blur(); // Remove focus to prevent dropdown reopening
-            validateManualSelections();
-        }
-
-        function confirmGuestSelection(slotIndex) {
-            const input = document.querySelector(`[data-slot-index="${slotIndex}"]`);
-            const guestName = input.value.trim();
-
-            manualSelections[slotIndex] = {
-                id: -1,
-                name: guestName,
-                skill: 5.0,
-                fitness: 2.0
-            };
-
-            closeDropdown(slotIndex);
-            input.blur();
-            validateManualSelections();
-        }
-
-        function handleAutocompleteKeydown(event, slotIndex) {
-            const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
-            const options = dropdown.querySelectorAll('.autocomplete-option:not(.disabled)');
-            const highlighted = dropdown.querySelector('.autocomplete-option.highlighted');
-
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                if (options.length === 0) return;
-
-                let nextIdx = 0;
-                if (highlighted) {
-                    highlighted.classList.remove('highlighted');
-                    const idx = Array.from(options).indexOf(highlighted);
-                    nextIdx = Math.min(idx + 1, options.length - 1);
-                }
-                options[nextIdx].classList.add('highlighted');
-                options[nextIdx].scrollIntoView({ block: 'nearest' });
-            } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                if (options.length === 0) return;
-
-                let prevIdx = options.length - 1;
-                if (highlighted) {
-                    highlighted.classList.remove('highlighted');
-                    const idx = Array.from(options).indexOf(highlighted);
-                    prevIdx = Math.max(idx - 1, 0);
-                }
-                options[prevIdx].classList.add('highlighted');
-                options[prevIdx].scrollIntoView({ block: 'nearest' });
-            } else if (event.key === 'Enter') {
-                event.preventDefault();
-                if (highlighted) {
-                    // Check if it's a guest option
-                    if (highlighted.classList.contains('guest-option')) {
-                        confirmGuestSelection(slotIndex);
-                    } else {
-                        selectAutocompleteOption(slotIndex, highlighted);
-                    }
-                }
-            } else if (event.key === 'Escape') {
-                closeDropdown(slotIndex);
-            } else if (event.key === 'Tab') {
-                closeDropdown(slotIndex);
-                // Let the natural tab behavior proceed
-            }
-        }
-
-        function closeDropdown(slotIndex) {
-            const dropdown = document.getElementById(`autocomplete-dropdown-${slotIndex}`);
-            if (dropdown) {
-                dropdown.classList.remove('show');
-            }
-        }
-
-        function closeAllDropdowns(event) {
-            if (!event.target.closest('.autocomplete-wrapper')) {
-                for (let i = 0; i < 12; i++) {
-                    closeDropdown(i);
+                // Select (only if under limit)
+                if (totalSelected < 12) {
+                    selectedPlayers.add(playerId);
                 }
             }
+
+            renderPlayerSelectionList();
+            updateSelectionCounter();
         }
 
-        function validateManualSelections() {
-            const filledCount = manualSelections.filter(s => s && s.name.trim() !== '').length;
+        function adjustGuestCount(delta) {
+            const totalSelected = selectedPlayers.size + guestCount;
+            const newGuestCount = guestCount + delta;
+
+            // Validate: can't go below 0, can't exceed 12 total
+            if (newGuestCount < 0) return;
+            if (delta > 0 && totalSelected >= 12) return;
+
+            guestCount = newGuestCount;
+            document.getElementById('guest-count').textContent = guestCount;
+
+            // Re-render to update disabled states
+            renderPlayerSelectionList();
+            updateSelectionCounter();
+        }
+
+        function updateSelectionCounter() {
+            const total = selectedPlayers.size + guestCount;
+            const countEl = document.getElementById('selection-count');
+            const counterEl = document.getElementById('selection-counter');
             const btn = document.getElementById('manual-continue-btn');
-            btn.disabled = filledCount !== 12;
+
+            countEl.textContent = total;
+
+            // Update counter styling
+            counterEl.classList.remove('complete', 'over');
+            if (total === 12) {
+                counterEl.classList.add('complete');
+            } else if (total > 12) {
+                counterEl.classList.add('over');
+            }
+
+            // Enable button only when exactly 12
+            btn.disabled = total !== 12;
         }
 
         function goBackFromManualSelection() {
-            document.getElementById('admin-step-manual').classList.add('hidden');
+            // Return to admin view with upload step visible
+            document.getElementById('view-manual-selection').classList.add('hidden');
+            document.getElementById('view-admin').classList.remove('hidden');
+            // Ensure upload step is showing
             document.getElementById('admin-step-upload').classList.remove('hidden');
-            manualSelections = [];
-            document.removeEventListener('click', closeAllDropdowns);
+            document.getElementById('admin-step-edit').classList.add('hidden');
+            document.getElementById('admin-step-resolve').classList.add('hidden');
+            document.getElementById('admin-step-teams').classList.add('hidden');
+            // Show nav tabs
+            document.getElementById('nav-tabs').classList.remove('hidden');
+            document.getElementById('tab-admin').classList.add('text-accent', 'bg-accent/10');
+            document.getElementById('tab-admin').classList.remove('text-text-secondary');
+            selectedPlayers = new Set();
+            guestCount = 0;
         }
 
         function continueFromManualSelection() {
             // Build players array for Review step
-            const players = manualSelections.map(sel => ({
-                id: sel.id,
-                name: sel.name,
-                skill: sel.skill,
-                fitness: sel.fitness
-            }));
+            const players = [];
+
+            // Add selected registered players
+            allPlayers.forEach(p => {
+                if (selectedPlayers.has(p.id)) {
+                    players.push({
+                        id: p.id,
+                        name: p.name,
+                        skill: 5.0,  // Will be fetched from DB during team generation
+                        fitness: 2.0
+                    });
+                }
+            });
+
+            // Add guests with empty names (user will fill in Review page)
+            for (let i = 0; i < guestCount; i++) {
+                players.push({
+                    id: -1,
+                    name: '',
+                    skill: 5.0,
+                    fitness: 2.0
+                });
+            }
 
             parsedPlayers = players;
             cameFromResolveStep = false;
             cameFromManualStep = true;
 
-            document.getElementById('admin-step-manual').classList.add('hidden');
-            document.removeEventListener('click', closeAllDropdowns);
+            // Clear search input for next time
+            document.getElementById('player-search-input').value = '';
+
+            // Switch back to admin view and show edit step
+            document.getElementById('view-manual-selection').classList.add('hidden');
+            document.getElementById('view-admin').classList.remove('hidden');
+            document.getElementById('nav-tabs').classList.remove('hidden');
+            document.getElementById('tab-admin').classList.add('text-accent', 'bg-accent/10');
+            document.getElementById('tab-admin').classList.remove('text-text-secondary');
+
             showEditStep(players);
         }
 
@@ -2497,6 +2519,9 @@
             document.getElementById('admin-step-resolve').classList.add('hidden');
             document.getElementById('admin-step-manual').classList.add('hidden');
             document.getElementById('admin-step-edit').classList.remove('hidden');
+
+            // Scroll to top of page
+            window.scrollTo(0, 0);
 
             // Store original data for reset
             originalPlayersData = players.map(p => ({ ...p }));
@@ -2750,6 +2775,9 @@
         function showTeamsStep(data) {
             document.getElementById('admin-step-edit').classList.add('hidden');
             document.getElementById('admin-step-teams').classList.remove('hidden');
+
+            // Scroll to top of page
+            window.scrollTo(0, 0);
 
             // Store teams with skills for swapping calculations
             whiteTeam = data.home.players.map(p => ({ name: p.name, skill: p.base_skill_rating, fitness: p.base_fitness_rating }));
@@ -3288,6 +3316,7 @@
             document.getElementById('admin-step-manual').classList.add('hidden');
             document.getElementById('admin-step-edit').classList.add('hidden');
             document.getElementById('admin-step-teams').classList.add('hidden');
+            document.getElementById('view-manual-selection').classList.add('hidden');
             document.getElementById('file-input').value = '';
             document.getElementById('upload-error').classList.add('hidden');
             document.getElementById('generate-btn').disabled = true;
@@ -3298,7 +3327,8 @@
             unresolvedPlayers = [];
             registeredPlayers = [];
             parsedPlayers = [];
-            manualSelections = [];
+            selectedPlayers = new Set();
+            guestCount = 0;
             cameFromManualStep = false;
             cameFromResolveStep = false;
         }
@@ -3322,10 +3352,17 @@
             // If we came from the manual selection step, go back there
             if (cameFromManualStep) {
                 document.getElementById('admin-step-edit').classList.add('hidden');
-                document.getElementById('admin-step-manual').classList.remove('hidden');
+                // Show manual selection as top-level view
+                document.getElementById('view-admin').classList.add('hidden');
+                document.getElementById('view-manual-selection').classList.remove('hidden');
+                // Keep nav tabs visible
+                document.getElementById('nav-tabs').classList.remove('hidden');
+                document.getElementById('tab-admin').classList.add('text-accent', 'bg-accent/10');
+                document.getElementById('tab-admin').classList.remove('text-text-secondary');
                 cameFromManualStep = false; // Reset for next navigation
-                // Re-render slots with previous selections
-                renderManualSelectionSlots();
+                // Re-render with previous selections preserved
+                renderPlayerSelectionList();
+                updateSelectionCounter();
                 return;
             }
 
@@ -3343,7 +3380,8 @@
             unresolvedPlayers = [];
             registeredPlayers = [];
             parsedPlayers = [];
-            manualSelections = [];
+            selectedPlayers = new Set();
+            guestCount = 0;
         }
 
         function goBackToReview() {
