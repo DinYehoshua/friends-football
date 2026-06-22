@@ -349,10 +349,12 @@ type GoogleClaims struct {
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	Name          string `json:"name"`
-	Sub           string `json:"sub"` // Google user ID
-	Aud           string `json:"aud"` // Audience (Client ID)
-	Iss           string `json:"iss"` // Issuer
-	Exp           int64  `json:"exp"` // Expiration time (Unix timestamp)
+	GivenName     string `json:"given_name"`  // First name
+	FamilyName    string `json:"family_name"` // Last name
+	Sub           string `json:"sub"`         // Google user ID
+	Aud           string `json:"aud"`         // Audience (Client ID)
+	Iss           string `json:"iss"`         // Issuer
+	Exp           int64  `json:"exp"`         // Expiration time (Unix timestamp)
 }
 
 // googleClientID is loaded from GOOGLE_CLIENT_ID environment variable.
@@ -363,9 +365,11 @@ var googleClientID = os.Getenv("GOOGLE_CLIENT_ID")
 var claimTokens = make(map[string]claimTokenData)
 
 type claimTokenData struct {
-	Email     string
-	Name      string
-	ExpiresAt time.Time
+	Email      string
+	Name       string
+	GivenName  string
+	FamilyName string
+	ExpiresAt  time.Time
 }
 
 // handleGoogleAuth handles Google OAuth sign-in.
@@ -430,9 +434,11 @@ func (s *Server) handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 	// Email not linked - generate a claim token for the linking flow
 	claimToken := generateClaimToken()
 	claimTokens[claimToken] = claimTokenData{
-		Email:     email,
-		Name:      claims.Name,
-		ExpiresAt: time.Now().Add(10 * time.Minute), // Token valid for 10 minutes
+		Email:      email,
+		Name:       claims.Name,
+		GivenName:  claims.GivenName,
+		FamilyName: claims.FamilyName,
+		ExpiresAt:  time.Now().Add(10 * time.Minute), // Token valid for 10 minutes
 	}
 
 	// Clean up expired tokens periodically
@@ -483,14 +489,69 @@ func (s *Server) handleClaimAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Normalize phone number
-	phone := strings.ReplaceAll(strings.TrimSpace(req.Phone), "-", "")
+	// Normalize phone number (remove dashes and spaces)
+	phone := strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(req.Phone), "-", ""), " ", "")
+
+	// Validate phone number is exactly 10 digits
+	if len(phone) != 10 {
+		writeError(w, http.StatusBadRequest, "Phone number must be 10 digits")
+		return
+	}
+	for _, c := range phone {
+		if c < '0' || c > '9' {
+			writeError(w, http.StatusBadRequest, "Phone number must contain only digits")
+			return
+		}
+	}
 
 	// Find player by phone
 	player, err := getPlayerByPhone(phone)
 	if err != nil {
-		log.Printf("[ClaimAccount] Phone not found: %s", phone)
-		writeError(w, http.StatusNotFound, "No player found with this phone number.\nTalk to the manager to join!")
+		// Phone not found - create a new player using Google profile data
+		log.Printf("[ClaimAccount] Phone %s not found, creating new player from Google profile", phone)
+
+		// Build player name: given_name + first letter of family_name
+		playerName := buildPlayerName(tokenData.GivenName, tokenData.FamilyName)
+		if playerName == "" {
+			// Fallback to full name if given/family names are missing
+			playerName = tokenData.Name
+		}
+		if playerName == "" {
+			writeError(w, http.StatusBadRequest, "Unable to determine name from Google profile")
+			return
+		}
+
+		// Create new player with tier 3, default ratings
+		newPlayer, err := createNewPlayer(playerName, phone, tokenData.Email, tokenData.Name)
+		if err != nil {
+			log.Printf("[ClaimAccount] Failed to create new player: %v", err)
+			writeError(w, http.StatusInternalServerError, "Failed to create account")
+			return
+		}
+		player = newPlayer
+
+		// Delete the claim token (one-time use)
+		delete(claimTokens, req.ClaimToken)
+
+		// Create session
+		sessionValue := createSessionToken(player.ID)
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionCookieName,
+			Value:    sessionValue,
+			Path:     "/",
+			MaxAge:   cookieMaxAge,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
+
+		log.Printf("[ClaimAccount] Created new player %s (ID: %d) with Google: %s", player.Name, player.ID, tokenData.Email)
+
+		writeJSON(w, http.StatusOK, GoogleAuthResponse{
+			Status:   "claimed",
+			PlayerID: player.ID,
+			Name:     player.Name,
+			IsAdmin:  player.IsAdmin,
+		})
 		return
 	}
 
@@ -553,6 +614,79 @@ func updatePlayerEmail(playerID int, email string) error {
 	query := fmt.Sprintf(`UPDATE players SET email = %s WHERE id = %s`, database.Placeholder(1), database.Placeholder(2))
 	_, err := database.DB.Exec(query, email, playerID)
 	return err
+}
+
+// buildPlayerName creates a display name from Google profile: "GivenName F" format.
+func buildPlayerName(givenName, familyName string) string {
+	givenName = strings.TrimSpace(givenName)
+	familyName = strings.TrimSpace(familyName)
+
+	if givenName == "" {
+		return ""
+	}
+
+	if familyName == "" {
+		return givenName
+	}
+
+	// Get first letter of family name
+	firstLetter := string([]rune(familyName)[0])
+	return fmt.Sprintf("%s %s", givenName, firstLetter)
+}
+
+// createNewPlayer creates a new player with tier 3 and default ratings.
+// Uses Google profile name as nickname alias for future matching.
+func createNewPlayer(name, phone, email, fullName string) (*database.Player, error) {
+	// Prepare nickname aliases as JSON array with full name
+	var nicknameAliases string
+	if fullName != "" && fullName != name {
+		aliasesJSON, _ := json.Marshal([]string{fullName})
+		nicknameAliases = string(aliasesJSON)
+	}
+
+	// Insert new player with tier 3, default ratings (5.0 skill, 2.0 fitness), not admin
+	var query string
+	if database.ActiveDriver == database.DriverPostgres {
+		query = `
+			INSERT INTO players (name, phone, email, nickname_aliases, base_skill_rating, base_fitness_rating, is_admin, tier)
+			VALUES ($1, $2, $3, $4, 5.0, 2.0, FALSE, 3)
+			RETURNING id
+		`
+	} else {
+		query = `
+			INSERT INTO players (name, phone, email, nickname_aliases, base_skill_rating, base_fitness_rating, is_admin, tier)
+			VALUES (?, ?, ?, ?, 5.0, 2.0, 0, 3)
+		`
+	}
+
+	var playerID int
+	if database.ActiveDriver == database.DriverPostgres {
+		err := database.DB.QueryRow(query, name, phone, email, nicknameAliases).Scan(&playerID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to insert player: %w", err)
+		}
+	} else {
+		result, err := database.DB.Exec(query, name, phone, email, nicknameAliases)
+		if err != nil {
+			return nil, fmt.Errorf("failed to insert player: %w", err)
+		}
+		id, err := result.LastInsertId()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get player ID: %w", err)
+		}
+		playerID = int(id)
+	}
+
+	// Return the newly created player
+	return &database.Player{
+		ID:                playerID,
+		Name:              name,
+		Phone:             phone,
+		BaseSkillRating:   5.0,
+		BaseFitnessRating: 2.0,
+		IsAdmin:           false,
+		Tier:              3,
+	}, nil
 }
 
 // generateClaimToken creates a random token for the claim flow.

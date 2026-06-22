@@ -117,10 +117,12 @@
             display: none;
             align-items: center;
             justify-content: center;
-            width: 20px;
-            height: 20px;
-            color: #666;
-            font-size: 14px;
+            width: 28px;
+            height: 28px;
+            color: #888;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: -2px;
             cursor: grab;
             touch-action: none;
             user-select: none;
@@ -128,8 +130,11 @@
         }
         .drag-handle:active {
             cursor: grabbing;
-            color: #999;
+            color: #bbb;
         }
+        /* Teams subtitle - show different text for mobile vs desktop */
+        .teams-subtitle-mobile { display: none; }
+        .teams-subtitle-desktop { display: block; }
         /* Touch drag ghost element */
         .touch-drag-ghost {
             position: fixed;
@@ -767,6 +772,10 @@
             .player-card {
                 cursor: default;
             }
+            /* Teams subtitle - show mobile version, hide desktop */
+            .teams-subtitle-mobile { display: block !important; }
+            .teams-subtitle-desktop { display: none !important; }
+            }
 
             /* ===== GLOBAL MOBILE RATING CONTROLS ===== */
             /* Fitness select dropdown on mobile */
@@ -833,7 +842,7 @@
             <a href="#" onclick="showView('rate'); return false;" class="text-lg font-semibold tracking-tight mobile-nav-title cursor-pointer" style="text-decoration: none;">Friends Football ⚽️👨🏾‍🤝‍👨🏽</a>
             <div class="flex gap-1 mobile-nav-tabs" id="nav-tabs">
                 <button id="tab-rate" class="nav-tab px-4 py-2 text-sm rounded-lg transition-colors" onclick="showView('rate')">
-                    Rate Friends
+                    Rate Players
                 </button>
                 <button id="tab-history" class="nav-tab px-4 py-2 text-sm rounded-lg transition-colors text-text-secondary" onclick="handleHistoryTabClick(event)">
                     Match History
@@ -867,7 +876,7 @@
             <div class="bg-[#1C1C1E] rounded-2xl w-full max-w-sm p-6">
                 <div class="text-center mb-6">
                     <h2 class="text-xl font-semibold mb-3">First time here?</h2>
-                    <p class="text-text-secondary text-sm">Enter your phone number</p>
+                    <p class="text-text-secondary text-sm">Enter your registered phone number</p>
                 </div>
                 <div class="space-y-4">
                     <input
@@ -881,7 +890,7 @@
                         onclick="handleClaimAccount()"
                         class="w-full bg-accent text-pitch font-semibold py-3 rounded-lg hover:bg-opacity-90 transition-colors"
                     >
-                        Let's Go!
+                        Continue
                     </button>
                     <button
                         onclick="closeClaimModal()"
@@ -897,7 +906,7 @@
         <!-- View B: Rate Friends -->
         <div id="view-rate" class="view hidden flex flex-col max-w-2xl mx-auto" style="height: calc(100vh - 56px); overflow: hidden;">
             <div class="p-4 pb-2">
-                <h2 class="text-xl font-semibold mb-1">Rate Your Friends</h2>
+                <h2 class="text-xl font-semibold mb-1">Player Ratings</h2>
                 <p id="rate-subtitle" class="text-text-secondary text-sm">Ratings are anonymous. Update anytime.</p>
             </div>
 
@@ -940,9 +949,9 @@
             <!-- Step 1: Upload -->
             <div id="admin-step-upload">
                 <div class="mb-6">
-                    <h2 class="text-xl font-semibold mb-3">Upload Your Friends</h2>
+                    <h2 class="text-xl font-semibold mb-3">Who's Playing This Week?</h2>
                     <div class="text-text-secondary text-sm">
-                        <p class="mb-2">Export your WhatsApp chat history:</p>
+                        <p class="mb-2">Upload your WhatsApp chat to auto-detect registrations:</p>
                         <div class="bg-surface/50 rounded-lg p-3 space-y-2">
                             <div class="flex items-start gap-2">
                                 <span class="text-accent font-medium">1.</span>
@@ -977,9 +986,15 @@
                     ondrop="handleFileDrop(event)"
                 >
                     <input type="file" id="file-input" accept=".zip" class="hidden" onchange="handleFileSelect(event)">
-                    <div class="text-4xl mb-4">📁</div>
-                    <p class="text-text-primary font-medium">Tap to upload your chat file</p>
-                    <p class="text-text-disabled text-sm mt-2">.zip file from WhatsApp export</p>
+                    <!-- Icon area -->
+                    <div class="text-4xl mb-4">
+                        <span id="drop-zone-icon">📁</span>
+                        <span id="drop-zone-spinner" class="hidden inline-block w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin"></span>
+                    </div>
+                    <!-- Main text -->
+                    <p id="drop-zone-title" class="text-text-primary font-medium">Tap to upload chat file</p>
+                    <!-- Secondary text -->
+                    <p id="drop-zone-subtitle" class="text-text-disabled text-sm mt-2">WhatsApp exported .zip</p>
                 </div>
 
                 <!-- Or divider -->
@@ -994,18 +1009,13 @@
                     onclick="startManually()"
                     class="w-full btn-secondary py-3"
                 >
-                    Start Manually
+                    Pick Players Manually
                 </button>
 
                 <!-- Mock button for testing -->
                 <button onclick="mockUploadResponse()" class="mt-4 text-xs text-text-disabled hover:text-text-secondary">
                     [Mock Data]
                 </button>
-
-                <div id="upload-loader" class="hidden mt-8 text-center">
-                    <div class="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-                    <p class="text-text-secondary mt-2">Parsing chat...</p>
-                </div>
 
                 <p id="upload-error" class="text-red-500 text-sm text-center mt-4 hidden whitespace-pre-line"></p>
             </div>
@@ -1022,7 +1032,7 @@
                     </button>
                     <div>
                         <h2 class="text-xl font-semibold mb-1">Who's Playing?</h2>
-                        <p class="text-text-secondary text-sm">Select 12 players or type guest names.</p>
+                        <p class="text-text-secondary text-sm">Pick 12 players for this week's match.</p>
                     </div>
                 </div>
 
@@ -1056,13 +1066,13 @@
                     </button>
                     <div>
                         <h2 class="text-xl font-semibold mb-1">Who Are They?</h2>
-                        <p class="text-text-secondary text-sm">Map unknown names to registered players or mark as guests.</p>
+                            <p class="text-text-secondary text-sm">Match each name to a player or add as guest.</p>
                     </div>
                 </div>
 
                 <!-- One-time note -->
                 <div class="bg-accent/10 border border-accent/30 rounded-lg px-4 py-3 mb-5">
-                    <p class="text-accent text-sm">This is a one-time setup. Once mapped, these names will be recognized automatically next time.</p>
+                    <p class="text-accent text-sm">One-time setup: names will be recognized automatically next time.</p>
                 </div>
 
                 <div class="roster-container p-5">
@@ -1077,12 +1087,12 @@
                     onclick="saveAndContinueResolve()"
                     class="w-full btn-primary py-3 mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Save and Continue
+                    Continue
                 </button>
 
                 <div id="resolve-loader" class="hidden mt-8 text-center">
                     <div class="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-                    <p class="text-text-secondary mt-2">Saving aliases...</p>
+                    <p class="text-text-secondary text-sm">Saving mappings...</p>
                 </div>
 
                 <p id="resolve-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
@@ -1102,7 +1112,7 @@
                     </button>
                     <div>
                         <h2 class="text-xl font-semibold mb-1">Review Players</h2>
-                        <p class="text-text-secondary text-sm">Edit names if needed.</p>
+                        <p class="text-text-secondary text-sm">Confirm the 12 players for this match.</p>
                     </div>
                 </div>
 
@@ -1114,7 +1124,7 @@
                     </div>
 
                     <!-- Note about unrecognized players -->
-                    <p class="text-text-secondary text-xs mt-4 mb-2">• Players displaying rating controls were not recognized by the system.</p>
+                    <p class="text-text-secondary text-xs mt-4 mb-2">Adjust guests skill and fitness.</p>
 
                     <!-- Footer controls -->
                     <div class="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -1142,7 +1152,7 @@
                                 class="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                                 tabindex="-1"
                             >
-                                Reset Changes
+                                Undo Changes
                             </button>
                             <button
                                 id="generate-btn"
@@ -1159,7 +1169,7 @@
 
                 <div id="generate-loader" class="hidden mt-8 text-center">
                     <div class="inline-block w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
-                    <p class="text-text-secondary mt-2">Balancing teams...</p>
+                    <p class="text-text-secondary text-sm">Creating balanced teams...</p>
                 </div>
 
                 <p id="generate-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
@@ -1178,9 +1188,9 @@
                             ←
                         </button>
                         <div>
-                            <h2 class="text-xl font-semibold">Your Kohot</h2>
-                            <p class="text-text-secondary text-sm hidden sm:block">Drag players to swap between teams</p>
-                            <p class="text-text-secondary text-sm sm:hidden">Use ⋮⋮ to drag and swap players</p>
+                            <h2 class="text-xl font-semibold">Your Teams</h2>
+                            <p class="text-text-secondary text-sm teams-subtitle-desktop">Drag players to swap between teams.</p>
+                            <p class="text-text-secondary text-sm teams-subtitle-mobile hidden">Tap ⋮⋮⋮⋮⋮ and drag to swap players.</p>
                         </div>
                     </div>
                     <!-- Action buttons -->
@@ -1886,9 +1896,10 @@
 
             isUploadInProgress = true;
             const dropZone = document.getElementById('drop-zone');
+
+            // Show loading state - swap icon and text
             dropZone.style.pointerEvents = 'none';
-            dropZone.style.opacity = '0.5';
-            document.getElementById('upload-loader').classList.remove('hidden');
+            setDropZoneLoading(true);
             document.getElementById('upload-error').classList.add('hidden');
 
             const formData = new FormData();
@@ -1909,6 +1920,9 @@
                     } else {
                         showUploadError(data.error || 'Upload failed');
                     }
+                    // Restore drop zone to default state on error
+                    setDropZoneLoading(false);
+                    dropZone.style.pointerEvents = '';
                     return;
                 }
 
@@ -1929,11 +1943,35 @@
                 }
             } catch (err) {
                 showUploadError('Connection error');
+                // Restore drop zone to default state on error
+                setDropZoneLoading(false);
+                dropZone.style.pointerEvents = '';
             } finally {
                 isUploadInProgress = false;
-                dropZone.style.pointerEvents = '';
-                dropZone.style.opacity = '';
-                document.getElementById('upload-loader').classList.add('hidden');
+            }
+        }
+
+        // Toggle drop zone between default and loading states
+        function setDropZoneLoading(isLoading) {
+            const icon = document.getElementById('drop-zone-icon');
+            const spinner = document.getElementById('drop-zone-spinner');
+            const title = document.getElementById('drop-zone-title');
+            const subtitle = document.getElementById('drop-zone-subtitle');
+
+            if (isLoading) {
+                icon.classList.add('hidden');
+                spinner.classList.remove('hidden');
+                title.textContent = 'Parsing chat file...';
+                title.classList.remove('text-text-primary');
+                title.classList.add('text-text-secondary');
+                subtitle.textContent = 'This may take a moment';
+            } else {
+                icon.classList.remove('hidden');
+                spinner.classList.add('hidden');
+                title.textContent = 'Tap to upload chat file';
+                title.classList.remove('text-text-secondary');
+                title.classList.add('text-text-primary');
+                subtitle.textContent = 'WhatsApp exported .zip';
             }
         }
 
@@ -2021,12 +2059,12 @@
 
                 html += `
                     <div class="selection-slot">
-                        <div class="selection-slot-number">Player ${i + 1}</div>
+                        <div class="selection-slot-number">#${i + 1}</div>
                         <div class="autocomplete-wrapper">
                             <input
                                 type="text"
                                 class="autocomplete-input${hasSelection ? ' has-selection' : ''}"
-                                placeholder="Search or type guest name..."
+                                placeholder="Type name or search..."
                                 value="${escapeHtml(value)}"
                                 data-slot-index="${i}"
                                 oninput="handleAutocompleteInput(${i}, this)"
@@ -2169,7 +2207,7 @@
             });
 
             if (filtered.length === 0) {
-                dropdown.innerHTML = `<div class="autocomplete-option guest-option" onclick="confirmGuestSelection(${slotIndex})">Add "${escapeHtml(input.value.trim())}" as guest</div>`;
+                dropdown.innerHTML = `<div class="autocomplete-option guest-option" onclick="confirmGuestSelection(${slotIndex})">+ Add "${escapeHtml(input.value.trim())}" as guest</div>`;
             } else {
                 dropdown.innerHTML = filtered.map((player, idx) => {
                     const isSelected = isPlayerAlreadySelected(player.id, slotIndex);
@@ -2366,7 +2404,7 @@
                         <span class="unresolved-name">${escapeHtml(u.name)}</span>
                         <span class="mapping-arrow">→</span>
                         <select class="mapping-select" data-unresolved-name="${escapeHtml(u.name)}" data-original-index="${u.index}">
-                            <option value="-1">Guest</option>
+                                <option value="-1">Add as Guest</option>
                             ${registeredPlayers.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
                         </select>
                     </div>
@@ -2381,6 +2419,9 @@
             document.getElementById('admin-step-upload').classList.remove('hidden');
             document.getElementById('file-input').value = '';
             document.getElementById('upload-error').classList.add('hidden');
+            // Reset drop zone state
+            setDropZoneLoading(false);
+            document.getElementById('drop-zone').style.pointerEvents = '';
             // Clear state
             unresolvedPlayers = [];
             registeredPlayers = [];
@@ -2484,7 +2525,7 @@
                                 data-id="${id}"
                                 data-original-id="${id}"
                                 data-original-name="${escapeHtml(name)}"
-                                placeholder="Player ${i + 1}"
+                                placeholder="Enter name"
                                 oninput="handlePlayerNameChange(${i})"
                                 tabindex="${i + 1}"
                             >
@@ -2738,7 +2779,7 @@
                     ondrop="dropOnPlayer(event, 'white', ${i})"
                 >
                     <span class="flex-1">${escapeHtml(p.name)}</span>
-                    <span class="drag-handle" data-team="white" data-index="${i}">⋮⋮</span>
+                    <span class="drag-handle" data-team="white" data-index="${i}">⋮⋮⋮⋮⋮</span>
                 </div>
             `).join('');
 
@@ -2755,7 +2796,7 @@
                     ondrop="dropOnPlayer(event, 'blue', ${i})"
                 >
                     <span class="flex-1">${escapeHtml(p.name)}</span>
-                    <span class="drag-handle" data-team="blue" data-index="${i}">⋮⋮</span>
+                    <span class="drag-handle" data-team="blue" data-index="${i}">⋮⋮⋮⋮⋮</span>
                 </div>
             `).join('');
 
@@ -3010,7 +3051,7 @@
             const whiteNames = whiteTeam.map(p => p.name).join('\n');
             const blueNames = blueTeam.map(p => p.name).join('\n');
 
-            const text = `⚪ White:\n${whiteNames}\n\n🔵 Blue:\n${blueNames}`;
+            const text = `⚪ White Team:\n${whiteNames}\n\n🔵 Blue Team:\n${blueNames}`;
 
             navigator.clipboard.writeText(text).then(() => {
                 showToast('Copied to clipboard');
@@ -3250,6 +3291,9 @@
             document.getElementById('file-input').value = '';
             document.getElementById('upload-error').classList.add('hidden');
             document.getElementById('generate-btn').disabled = true;
+            // Reset drop zone state
+            setDropZoneLoading(false);
+            document.getElementById('drop-zone').style.pointerEvents = '';
             // Clear resolve state
             unresolvedPlayers = [];
             registeredPlayers = [];
@@ -3292,6 +3336,9 @@
             document.getElementById('admin-step-manual').classList.add('hidden');
             document.getElementById('file-input').value = '';
             document.getElementById('upload-error').classList.add('hidden');
+            // Reset drop zone state
+            setDropZoneLoading(false);
+            document.getElementById('drop-zone').style.pointerEvents = '';
             // Clear resolve state
             unresolvedPlayers = [];
             registeredPlayers = [];
