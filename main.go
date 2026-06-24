@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -15,8 +16,10 @@ import (
 )
 
 const (
-	defaultDBPath = "./friends-football.db"
-	defaultPort   = ":8080"
+	defaultDBPath    = "./friends-football.db"
+	defaultPort      = ":8080"
+	selfPingURL      = "https://friends-football.onrender.com/health"
+	selfPingInterval = 12 * time.Minute
 )
 
 func main() {
@@ -46,6 +49,9 @@ func main() {
 		}
 	}()
 
+	// Start self-ping worker to keep Render free tier awake
+	stopPing := startSelfPing()
+
 	// Set up graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -57,6 +63,9 @@ func main() {
 	// Wait for shutdown signal
 	<-quit
 	log.Println("Shutting down Friends Football...")
+
+	// Stop self-ping worker
+	close(stopPing)
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -79,4 +88,37 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// startSelfPing starts a background goroutine that pings the health endpoint
+// every 12 minutes to keep the Render free tier awake.
+// Returns a channel to stop the worker.
+func startSelfPing() chan struct{} {
+	stop := make(chan struct{})
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	go func() {
+		ticker := time.NewTicker(selfPingInterval)
+		defer ticker.Stop()
+
+		log.Printf("Self-ping worker started (interval: %v)", selfPingInterval)
+
+		for {
+			select {
+			case <-ticker.C:
+				resp, err := client.Get(selfPingURL)
+				if err != nil {
+					log.Printf("Self-ping failed: %v", err)
+					continue
+				}
+				resp.Body.Close()
+				log.Printf("Self-ping successful (status: %d)", resp.StatusCode)
+			case <-stop:
+				log.Println("Self-ping worker stopped")
+				return
+			}
+		}
+	}()
+
+	return stop
 }

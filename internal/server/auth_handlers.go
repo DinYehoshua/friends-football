@@ -115,20 +115,22 @@ func getSessionPlayerID(r *http.Request) (int, error) {
 
 // PlayerResponse represents a player in API responses.
 type PlayerResponse struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	Tier int    `json:"tier"` // 1=Core, 2=Regular, 3=Occasional, 4=Rare
+	ID     int    `json:"id"`
+	Name   string `json:"name"`
+	Tier   int    `json:"tier"`    // 1=Core, 2=Regular, 3=Occasional, 4=Rare
+	IsSelf bool   `json:"is_self"` // true if this is the logged-in user
 	// Voter's existing ratings for this player (null if not rated)
 	MySkillRating   *int    `json:"my_skill_rating,omitempty"`
 	MyFitnessRating *string `json:"my_fitness_rating,omitempty"` // "Low", "Ok", "Good", "Great", "Excellent"
 }
 
-// handleGetPlayers returns all players except the logged-in user, with voter's existing ratings.
+// handleGetPlayers returns all players including the logged-in user, with voter's existing ratings.
+// The current user is marked with is_self: true.
 // Results are sorted by tier ASC (Core first) then name ASC.
 //
 //	GET /api/players
 //	Requires: session cookie
-//	Response: [{"id": 1, "name": "Dan", "tier": 1, "my_skill_rating": 7, "my_fitness_rating": "Good"}, ...]
+//	Response: [{"id": 1, "name": "Dan", "tier": 1, "is_self": false, "my_skill_rating": 7, "my_fitness_rating": "Good"}, ...]
 func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 	voterID, err := getSessionPlayerID(r)
 	if err != nil {
@@ -138,15 +140,14 @@ func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[Players] %s fetching player list", getPlayerName(voterID))
 
-	// Get all players except the voter, sorted by tier ASC then name ASC
+	// Get all players (including the voter), sorted by tier ASC then name ASC
 	query := fmt.Sprintf(`
 		SELECT p.id, p.name, p.tier, ar.skill_rating, ar.fitness_rating
 		FROM players p
 		LEFT JOIN anonymous_ratings ar ON ar.target_id = p.id AND ar.voter_id = %s
-		WHERE p.id != %s
 		ORDER BY p.tier ASC, p.name ASC
-	`, database.Placeholder(1), database.Placeholder(2))
-	rows, err := database.DB.Query(query, voterID, voterID)
+	`, database.Placeholder(1))
+	rows, err := database.DB.Query(query, voterID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch players")
 		return
@@ -161,6 +162,8 @@ func (s *Server) handleGetPlayers(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "failed to scan player")
 			return
 		}
+		// Mark if this is the current user
+		p.IsSelf = p.ID == voterID
 		if skillRating != nil {
 			p.MySkillRating = skillRating
 		}

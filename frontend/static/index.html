@@ -1210,16 +1210,16 @@
                         <div class="flex items-center gap-3 flex-1">
                             <div
                                 id="fitness-toggle"
-                                class="toggle-switch active"
+                                class="toggle-switch"
                                 onclick="toggleFitness()"
                                 role="switch"
-                                aria-checked="true"
+                                aria-checked="false"
                                 tabindex="-1"
                             >
                                 <div class="toggle-thumb"></div>
                             </div>
                             <span class="text-sm text-text-secondary">Consider Fitness</span>
-                            <input type="checkbox" id="consider-fitness" checked class="hidden">
+                            <input type="checkbox" id="consider-fitness" class="hidden">
                         </div>
 
                         <!-- Action buttons -->
@@ -1784,6 +1784,22 @@
             let html = '';
             for (let i = 0; i < toShow; i++) {
                 const p = allPlayers[i];
+
+                // Skip rendering controls for current user - show disabled card instead
+                if (p.is_self) {
+                    html += `
+                        <div class="roster-row dormant opacity-50" data-player-id="${p.id}">
+                            <div class="min-w-0">
+                                <span class="font-medium text-sm truncate block">${escapeHtml(p.name)}</span>
+                            </div>
+                            <div class="col-span-2 flex justify-center">
+                                <span class="text-sm text-green-400">You can't rate yourself</span>
+                            </div>
+                        </div>
+                    `;
+                    continue;
+                }
+
                 const r = ratings[p.id];
                 const isActive = touched.has(p.id);
                 const stateClass = isActive ? 'active' : 'dormant';
@@ -2225,6 +2241,7 @@
             const searchQuery = (document.getElementById('player-search-input')?.value || '').trim().toLowerCase();
 
             // Sort players by tier (ascending) then by name
+            // allPlayers now includes the current user from API
             let sortedPlayers = [...allPlayers].sort((a, b) => {
                 if (a.tier !== b.tier) return a.tier - b.tier;
                 return a.name.localeCompare(b.name);
