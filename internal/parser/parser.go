@@ -320,7 +320,7 @@ func (p *Parser) ParseChat(ctx context.Context, chatContent string) ([]string, e
 
 			// Rate limit - try next model
 			if IsRateLimitError(err) {
-				log.Printf("[Parser] Rate limit hit on %s, trying next model...", modelName)
+				log.Printf("[Parser] Rate limit/403 on %s: %v, trying next model...", modelName, err)
 				continue
 			}
 
