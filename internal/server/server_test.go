@@ -429,11 +429,19 @@ var _ = Describe("HTTP Endpoints", func() {
 
 				var players []map[string]interface{}
 				decodeResponse(w, &players)
-				Expect(players).To(HaveLen(12)) // 13 total players minus self
+				Expect(players).To(HaveLen(13)) // All 13 players including self
 
+				// Find self in the response
+				var foundSelf bool
 				for _, p := range players {
-					Expect(p["name"]).NotTo(Equal("Omer"))
+					if p["name"] == "Omer" {
+						Expect(p["is_self"]).To(BeTrue())
+						foundSelf = true
+					} else {
+						Expect(p["is_self"]).To(BeFalse())
+					}
 				}
+				Expect(foundSelf).To(BeTrue(), "Self should be included in response")
 			})
 
 			It("returns players sorted by tier ASC then name ASC", func() {

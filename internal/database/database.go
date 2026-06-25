@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"           // PostgreSQL driver
 	_ "github.com/mattn/go-sqlite3" // SQLite driver
@@ -61,11 +62,29 @@ CREATE TABLE IF NOT EXISTS anonymous_ratings (
     UNIQUE(voter_id, target_id)
 );
 
+-- Weekly Draft Table (shared collaborative workspace + match history)
+CREATE TABLE IF NOT EXISTS weekly_drafts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    match_date DATE UNIQUE NOT NULL,
+    player_ids TEXT,
+    guest_names TEXT,
+    status TEXT DEFAULT 'draft',
+    blue_team TEXT,
+    white_team TEXT,
+    score_blue INTEGER,
+    score_white INTEGER,
+    created_by INTEGER REFERENCES players(id),
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Index for faster lookups by phone number
 CREATE INDEX IF NOT EXISTS idx_players_phone ON players(phone);
 
 -- Index for faster rating lookups by target
 CREATE INDEX IF NOT EXISTS idx_ratings_target ON anonymous_ratings(target_id);
+
+-- Index for faster draft lookups by date
+CREATE INDEX IF NOT EXISTS idx_drafts_date ON weekly_drafts(match_date);
 `
 
 // postgresSchema contains the DDL statements for PostgreSQL.
@@ -93,11 +112,29 @@ CREATE TABLE IF NOT EXISTS anonymous_ratings (
     UNIQUE(voter_id, target_id)
 );
 
+-- Weekly Draft Table (shared collaborative workspace + match history)
+CREATE TABLE IF NOT EXISTS weekly_drafts (
+    id SERIAL PRIMARY KEY,
+    match_date DATE UNIQUE NOT NULL,
+    player_ids JSONB,
+    guest_names JSONB,
+    status TEXT DEFAULT 'draft',
+    blue_team JSONB,
+    white_team JSONB,
+    score_blue INTEGER,
+    score_white INTEGER,
+    created_by INTEGER REFERENCES players(id),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Index for faster lookups by phone number
 CREATE INDEX IF NOT EXISTS idx_players_phone ON players(phone);
 
 -- Index for faster rating lookups by target
 CREATE INDEX IF NOT EXISTS idx_ratings_target ON anonymous_ratings(target_id);
+
+-- Index for faster draft lookups by date
+CREATE INDEX IF NOT EXISTS idx_drafts_date ON weekly_drafts(match_date);
 `
 
 // Player represents a player record from the database.
@@ -479,5 +516,192 @@ func seedIfEmpty() error {
 	}
 
 	log.Printf("Seeded database with %d players from %s", len(players), seedPath)
+	return nil
+}
+
+// WeeklyDraft represents a shared draft for the upcoming match.
+type WeeklyDraft struct {
+	ID         int
+	MatchDate  string   // YYYY-MM-DD format
+	PlayerIDs  []int    // Selected player IDs
+	GuestNames []string // Guest player names
+	BlueTeam   []string // Saved blue team player names
+	WhiteTeam  []string // Saved white team player names
+	UpdatedAt  string
+}
+
+// GetUpcomingSaturday returns the date of the upcoming Saturday.
+// The week resets on Sunday at 06:00 AM Israel time (IDT = UTC+3).
+// - If it's Sunday before 06:00 AM IDT, target is the previous Saturday.
+// - If it's Sunday at/after 06:00 AM IDT, target is the next Saturday.
+func GetUpcomingSaturday() string {
+	// Israel time zone (IDT = UTC+3, IST = UTC+2 in winter)
+	israelTZ, err := time.LoadLocation("Asia/Jerusalem")
+	if err != nil {
+		// Fallback to UTC+3 if timezone not available
+		israelTZ = time.FixedZone("IDT", 3*60*60)
+	}
+
+	now := time.Now().In(israelTZ)
+	weekday := now.Weekday()
+
+	// Calculate days until Saturday
+	var daysUntilSaturday int
+	if weekday == time.Saturday {
+		// It's Saturday - target is today
+		daysUntilSaturday = 0
+	} else if weekday == time.Sunday {
+		// Sunday - check if before or after 06:00 AM
+		resetTime := time.Date(now.Year(), now.Month(), now.Day(), 6, 0, 0, 0, israelTZ)
+		if now.Before(resetTime) {
+			// Before 06:00 AM Sunday - target is yesterday (Saturday)
+			daysUntilSaturday = -1
+		} else {
+			// After 06:00 AM Sunday - target is next Saturday (6 days)
+			daysUntilSaturday = 6
+		}
+	} else {
+		// Monday(1) to Friday(5) - calculate days until Saturday(6)
+		daysUntilSaturday = int(time.Saturday - weekday)
+	}
+
+	targetDate := now.AddDate(0, 0, daysUntilSaturday)
+	return targetDate.Format("2006-01-02")
+}
+
+// GetCurrentDraft retrieves the draft for the upcoming Saturday.
+// Returns nil if no draft exists (not an error).
+func GetCurrentDraft() (*WeeklyDraft, error) {
+	matchDate := GetUpcomingSaturday()
+
+	var draft WeeklyDraft
+	var playerIDsJSON, guestNamesJSON, blueTeamJSON, whiteTeamJSON sql.NullString
+	var updatedAt sql.NullString
+
+	query := fmt.Sprintf(`SELECT id, match_date, player_ids, guest_names, blue_team, white_team, updated_at
+		FROM weekly_drafts WHERE match_date = %s`, Placeholder(1))
+
+	err := DB.QueryRow(query, matchDate).Scan(
+		&draft.ID, &draft.MatchDate, &playerIDsJSON, &guestNamesJSON, &blueTeamJSON, &whiteTeamJSON, &updatedAt)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No draft exists, not an error
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query draft: %w", err)
+	}
+
+	// Parse player IDs JSON
+	if playerIDsJSON.Valid && playerIDsJSON.String != "" {
+		if err := json.Unmarshal([]byte(playerIDsJSON.String), &draft.PlayerIDs); err != nil {
+			log.Printf("Warning: failed to parse player_ids JSON: %v", err)
+			draft.PlayerIDs = []int{}
+		}
+	}
+
+	// Parse guest names JSON
+	if guestNamesJSON.Valid && guestNamesJSON.String != "" {
+		if err := json.Unmarshal([]byte(guestNamesJSON.String), &draft.GuestNames); err != nil {
+			log.Printf("Warning: failed to parse guest_names JSON: %v", err)
+			draft.GuestNames = []string{}
+		}
+	}
+
+	// Parse blue team JSON
+	if blueTeamJSON.Valid && blueTeamJSON.String != "" {
+		if err := json.Unmarshal([]byte(blueTeamJSON.String), &draft.BlueTeam); err != nil {
+			log.Printf("Warning: failed to parse blue_team JSON: %v", err)
+			draft.BlueTeam = []string{}
+		}
+	}
+
+	// Parse white team JSON
+	if whiteTeamJSON.Valid && whiteTeamJSON.String != "" {
+		if err := json.Unmarshal([]byte(whiteTeamJSON.String), &draft.WhiteTeam); err != nil {
+			log.Printf("Warning: failed to parse white_team JSON: %v", err)
+			draft.WhiteTeam = []string{}
+		}
+	}
+
+	if updatedAt.Valid {
+		draft.UpdatedAt = updatedAt.String
+	}
+
+	return &draft, nil
+}
+
+// SaveCurrentDraft upserts the draft for the upcoming Saturday.
+func SaveCurrentDraft(playerIDs []int, guestNames []string) error {
+	matchDate := GetUpcomingSaturday()
+
+	// Convert to JSON
+	playerIDsJSON, err := json.Marshal(playerIDs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal player_ids: %w", err)
+	}
+
+	guestNamesJSON, err := json.Marshal(guestNames)
+	if err != nil {
+		return fmt.Errorf("failed to marshal guest_names: %w", err)
+	}
+
+	// Upsert query (different syntax for SQLite vs PostgreSQL)
+	var query string
+	if ActiveDriver == DriverPostgres {
+		query = `INSERT INTO weekly_drafts (match_date, player_ids, guest_names, updated_at)
+			VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+			ON CONFLICT (match_date)
+			DO UPDATE SET player_ids = $2, guest_names = $3, updated_at = CURRENT_TIMESTAMP`
+	} else {
+		query = `INSERT INTO weekly_drafts (match_date, player_ids, guest_names, updated_at)
+			VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+			ON CONFLICT (match_date)
+			DO UPDATE SET player_ids = excluded.player_ids, guest_names = excluded.guest_names, updated_at = CURRENT_TIMESTAMP`
+	}
+
+	_, err = DB.Exec(query, matchDate, string(playerIDsJSON), string(guestNamesJSON))
+	if err != nil {
+		return fmt.Errorf("failed to save draft: %w", err)
+	}
+
+	log.Printf("Saved draft for %s: %d players, %d guests", matchDate, len(playerIDs), len(guestNames))
+	return nil
+}
+
+// SaveTeams saves the final team assignments for the upcoming Saturday.
+func SaveTeams(blueTeam, whiteTeam []string) error {
+	matchDate := GetUpcomingSaturday()
+
+	// Convert to JSON
+	blueTeamJSON, err := json.Marshal(blueTeam)
+	if err != nil {
+		return fmt.Errorf("failed to marshal blue_team: %w", err)
+	}
+
+	whiteTeamJSON, err := json.Marshal(whiteTeam)
+	if err != nil {
+		return fmt.Errorf("failed to marshal white_team: %w", err)
+	}
+
+	// Upsert query (different syntax for SQLite vs PostgreSQL)
+	var query string
+	if ActiveDriver == DriverPostgres {
+		query = `INSERT INTO weekly_drafts (match_date, blue_team, white_team, updated_at)
+			VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+			ON CONFLICT (match_date)
+			DO UPDATE SET blue_team = $2, white_team = $3, updated_at = CURRENT_TIMESTAMP`
+	} else {
+		query = `INSERT INTO weekly_drafts (match_date, blue_team, white_team, updated_at)
+			VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+			ON CONFLICT (match_date)
+			DO UPDATE SET blue_team = excluded.blue_team, white_team = excluded.white_team, updated_at = CURRENT_TIMESTAMP`
+	}
+
+	_, err = DB.Exec(query, matchDate, string(blueTeamJSON), string(whiteTeamJSON))
+	if err != nil {
+		return fmt.Errorf("failed to save teams: %w", err)
+	}
+
+	log.Printf("Saved teams for %s: %d blue, %d white", matchDate, len(blueTeam), len(whiteTeam))
 	return nil
 }

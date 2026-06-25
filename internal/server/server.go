@@ -132,10 +132,16 @@ func (s *Server) registerRoutes() {
 	// Auth endpoints (Google SSO only)
 	s.mux.HandleFunc("POST /api/auth/google", s.handleGoogleAuth)
 	s.mux.HandleFunc("POST /api/auth/claim", s.handleClaimAccount)
+	s.mux.HandleFunc("GET /api/auth/me", s.handleAuthMe)
 
 	// Player endpoints
 	s.mux.HandleFunc("GET /api/players", s.handleGetPlayers)
 	s.mux.HandleFunc("POST /api/ratings", s.handleSubmitRatings)
+
+	// Draft endpoints (shared collaborative workspace)
+	s.mux.HandleFunc("GET /api/draft/current", s.handleGetCurrentDraft)
+	s.mux.HandleFunc("POST /api/draft/current", s.handleSaveCurrentDraft)
+	s.mux.HandleFunc("POST /api/draft/teams", s.handleSaveTeams)
 
 	// Admin endpoints (require admin role)
 	s.mux.HandleFunc("POST /api/admin/upload", s.requireAdmin(s.handleUploadChat))

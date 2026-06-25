@@ -33,8 +33,8 @@ var whatsappDateRegex = regexp.MustCompile(`^[\p{Cf}\s]*\[(\d{2}/\d{2}/\d{4}), \
 
 // Models to try in order (fallback on rate limit errors)
 var modelFallbackOrder = []string{
-	"gemini-flash-latest",   // Primary - auto-updates to newest
-	"gemini-3.1-flash-lite", // First fallback
+	"gemini-3.1-flash-lite", // Primary - auto-updates to newest
+	"gemini-flash-latest",   // First fallback
 	"gemini-2.5-flash",      // Second fallback
 	"gemini-2.5-flash-lite", // Final fallback
 }

@@ -18,16 +18,16 @@ import (
 	"friends-football/internal/database"
 )
 
-// Session secret key (in production, this should come from environment)
-var sessionSecret = generateSessionSecret()
+// Session secret key - uses SESSION_SECRET env var for persistence across restarts
+var sessionSecret = getSessionSecret()
 
-func generateSessionSecret() []byte {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		// Fallback to a default (not recommended for production)
-		return []byte("friends-football-secret-key-2024")
+func getSessionSecret() []byte {
+	// Use environment variable if set (recommended for persistence)
+	if secret := os.Getenv("SESSION_SECRET"); secret != "" {
+		return []byte(secret)
 	}
-	return key
+	// Fallback to a stable default for local development
+	return []byte("friends-football-local-dev-secret-2024")
 }
 
 // getPlayerByPhone retrieves a player from the database by phone number.
@@ -111,6 +111,43 @@ func getSessionPlayerID(r *http.Request) (int, error) {
 		return 0, fmt.Errorf("no session cookie")
 	}
 	return validateSessionToken(cookie.Value)
+}
+
+// AuthMeResponse represents the response for the /api/auth/me endpoint.
+type AuthMeResponse struct {
+	PlayerID int    `json:"player_id"`
+	Name     string `json:"name"`
+	IsAdmin  bool   `json:"is_admin"`
+}
+
+// handleAuthMe checks if the user has a valid session and returns their info.
+// This allows the frontend to restore login state on page load.
+//
+//	GET /api/auth/me
+//	Requires: session cookie
+//	Response: {"player_id": 1, "name": "Omer", "is_admin": false}
+func (s *Server) handleAuthMe(w http.ResponseWriter, r *http.Request) {
+	playerID, err := getSessionPlayerID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	// Get player info
+	var name string
+	var isAdmin bool
+	query := fmt.Sprintf(`SELECT name, is_admin FROM players WHERE id = %s`, database.Placeholder(1))
+	err = database.DB.QueryRow(query, playerID).Scan(&name, &isAdmin)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Player not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, AuthMeResponse{
+		PlayerID: playerID,
+		Name:     name,
+		IsAdmin:  isAdmin,
+	})
 }
 
 // PlayerResponse represents a player in API responses.
