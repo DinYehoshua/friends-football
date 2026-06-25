@@ -262,13 +262,14 @@ ADDITIONAL RULES:
 OUTPUT: Return a JSON array of exactly 12 strings - the final confirmed attendees in their original language.`
 }
 
-// IsRateLimitError checks if the error is a rate limit (429) or quota error.
+// IsRateLimitError checks if the error is a rate limit (429), quota, or 403 error.
 func IsRateLimitError(err error) bool {
 	if err == nil {
 		return false
 	}
 	errStr := strings.ToLower(err.Error())
 	return strings.Contains(errStr, "429") ||
+		strings.Contains(errStr, "403") ||
 		strings.Contains(errStr, "quota") ||
 		strings.Contains(errStr, "rate limit") ||
 		strings.Contains(errStr, "resource exhausted")
@@ -288,8 +289,7 @@ func IsFatalError(err error) bool {
 	// Invalid API key - all models will fail
 	if strings.Contains(errStr, "api key") ||
 		strings.Contains(errStr, "invalid key") ||
-		strings.Contains(errStr, "unauthorized") ||
-		strings.Contains(errStr, "403") {
+		strings.Contains(errStr, "unauthorized") {
 		return true
 	}
 	return false
