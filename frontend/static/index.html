@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Friends Football</title>
     <!-- Favicon using emoji via SVG data URL -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨🏾‍🤝‍👨🏽</text></svg>">
@@ -37,6 +37,11 @@
             background-color: #000000;
             min-height: 100vh;
             touch-action: pan-x pan-y;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        /* Safe area for bottom buttons */
+        .safe-bottom {
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
         /* Admin tooltip */
         .admin-tooltip {
@@ -1217,7 +1222,7 @@
                         </div>
 
                         <!-- Action buttons -->
-                        <div class="flex gap-3">
+                        <div class="flex gap-3 safe-bottom">
                             <button
                                 id="reset-changes-btn"
                                 onclick="resetPlayerChanges()"
@@ -1297,7 +1302,7 @@
                 </div>
 
                 <!-- Action buttons at bottom -->
-                <div class="flex gap-3 mt-6">
+                <div class="flex gap-3 mt-6 safe-bottom">
                     <button
                         onclick="copyToClipboard()"
                         class="w-12 h-12 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
@@ -1392,7 +1397,7 @@
                         </div>
                     </div>
                     <!-- Buttons row -->
-                    <div class="flex gap-3">
+                    <div class="flex gap-3 safe-bottom">
                         <button
                             onclick="showUploadFromWhatsApp()"
                             class="flex-1 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-text-secondary text-sm font-medium transition-colors"
@@ -1415,7 +1420,7 @@
     </main>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-border px-4 py-2 rounded-lg text-sm opacity-0 transition-opacity pointer-events-none">
+    <div id="toast" class="fixed left-1/2 -translate-x-1/2 bg-border px-4 py-2 rounded-lg text-sm opacity-0 transition-opacity pointer-events-none" style="bottom: calc(1.5rem + env(safe-area-inset-bottom))">
         Copied to clipboard
     </div>
 
