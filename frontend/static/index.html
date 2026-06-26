@@ -37,13 +37,45 @@
             background-color: #000000;
             min-height: 100vh;
             touch-action: pan-x pan-y;
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-bottom: constant(safe-area-inset-bottom); /* iOS 11.0 */
+            padding-bottom: env(safe-area-inset-bottom);      /* iOS 11.2+ */
+            overscroll-behavior: none;
         }
-        /* Safe area for bottom buttons - only on mobile */
-        @supports (padding-bottom: env(safe-area-inset-bottom)) {
-            .safe-bottom {
-                padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+        /* Sticky footer for mobile - fixed at bottom with safe area */
+        .mobile-sticky-footer {
+            /* Desktop: normal flow */
+            background-color: #000000;
+            border-top: 1px solid #2C2C2E;
+        }
+        @media (max-width: 768px) {
+            .mobile-sticky-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                padding-bottom: constant(safe-area-inset-bottom); /* iOS 11.0 */
+                padding-bottom: env(safe-area-inset-bottom);      /* iOS 11.2+ */
+                z-index: 50;
             }
+        }
+        /* Content padding to account for fixed footer on mobile */
+        .content-with-sticky-footer {
+            /* Desktop: no extra padding */
+        }
+        @media (max-width: 768px) {
+            .content-with-sticky-footer {
+                padding-bottom: calc(140px + constant(safe-area-inset-bottom)); /* iOS 11.0 */
+                padding-bottom: calc(140px + env(safe-area-inset-bottom));      /* iOS 11.2+ */
+            }
+            .content-with-sticky-footer-small {
+                padding-bottom: calc(80px + constant(safe-area-inset-bottom)); /* iOS 11.0 */
+                padding-bottom: calc(80px + env(safe-area-inset-bottom));      /* iOS 11.2+ */
+            }
+        }
+        /* Simple safe area padding for non-fixed elements */
+        .safe-bottom {
+            padding-bottom: constant(safe-area-inset-bottom); /* iOS 11.0 */
+            padding-bottom: env(safe-area-inset-bottom);      /* iOS 11.2+ */
         }
         /* Admin tooltip */
         .admin-tooltip {
@@ -311,12 +343,16 @@
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none; /* Firefox */
             -ms-overflow-style: none; /* IE/Edge */
+            overscroll-behavior: contain;
         }
         #view-rate .roster-container::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
         }
         /* Who's Playing - Player selection list hidden scrollbar */
-        #admin-step-manual > div.flex-1::-webkit-scrollbar {
+        #manual-selection-content {
+            overscroll-behavior: contain;
+        }
+        #manual-selection-content::-webkit-scrollbar {
             display: none; /* Chrome/Safari */
         }
         /* Rate Friends - Table header */
@@ -1025,7 +1061,7 @@
             </div>
 
             <!-- Roster with charcoal container -->
-            <div class="roster-container flex-1 mx-4">
+            <div class="roster-container flex-1 mx-4 content-with-sticky-footer-small">
                 <!-- Table header -->
                 <div class="roster-header">
                     <span>Player</span>
@@ -1038,7 +1074,7 @@
                 </div>
             </div>
 
-            <div id="ratings-controls" class="p-4 safe-bottom hidden">
+            <div id="ratings-controls" class="flex-shrink-0 mobile-sticky-footer p-4 hidden">
                 <div class="flex gap-3">
                     <button
                         id="load-more-btn"
@@ -1059,7 +1095,7 @@
         </div>
 
         <!-- View C: Generate Kohot (Admin) -->
-        <div id="view-admin" class="view hidden p-4 max-w-4xl mx-auto pb-6">
+        <div id="view-admin" class="view hidden p-4 max-w-4xl mx-auto safe-bottom">
             <!-- Step 1: Upload -->
             <div id="admin-step-upload">
                 <div class="mb-6">
@@ -1224,7 +1260,7 @@
                         </div>
 
                         <!-- Action buttons -->
-                        <div class="flex gap-3 safe-bottom">
+                        <div class="flex gap-3 pb-4 safe-bottom">
                             <button
                                 id="reset-changes-btn"
                                 onclick="resetPlayerChanges()"
@@ -1304,7 +1340,7 @@
                 </div>
 
                 <!-- Action buttons at bottom -->
-                <div class="flex gap-3 mt-6 safe-bottom">
+                <div class="flex gap-3 mt-6 pb-4 safe-bottom">
                     <button
                         onclick="copyToClipboard()"
                         class="w-12 h-12 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
@@ -1376,15 +1412,15 @@
 
             <!-- Scrollable player list (flex: 1, overflow-y: auto, min-height: 0 for flexbox fix) -->
             <div id="manual-selection-content" class="flex-1 overflow-y-auto min-h-0">
-                <div class="max-w-2xl mx-auto px-4 pt-3 pb-2">
+                <div class="max-w-2xl mx-auto px-4 pt-3 pb-2 content-with-sticky-footer">
                     <div id="player-selection-list" class="space-y-1.5">
                         <!-- Player cards rendered here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Footer (flex-shrink-0) -->
-            <div id="manual-selection-footer" class="flex-shrink-0 bg-pitch border-t border-border safe-bottom">
+            <!-- Footer (fixed on mobile, normal on desktop) -->
+            <div id="manual-selection-footer" class="flex-shrink-0 mobile-sticky-footer">
                 <div class="max-w-2xl mx-auto px-4 py-3">
                     <!-- Guest counter row -->
                     <div class="flex items-center justify-between mb-3">
