@@ -39,9 +39,11 @@
             touch-action: pan-x pan-y;
             padding-bottom: env(safe-area-inset-bottom);
         }
-        /* Safe area for bottom buttons */
-        .safe-bottom {
-            padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+        /* Safe area for bottom buttons - only on mobile */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .safe-bottom {
+                padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+            }
         }
         /* Admin tooltip */
         .admin-tooltip {
@@ -1036,7 +1038,7 @@
                 </div>
             </div>
 
-            <div id="ratings-controls" class="p-4 hidden">
+            <div id="ratings-controls" class="p-4 safe-bottom hidden">
                 <div class="flex gap-3">
                     <button
                         id="load-more-btn"
@@ -1382,7 +1384,7 @@
             </div>
 
             <!-- Footer (flex-shrink-0) -->
-            <div id="manual-selection-footer" class="flex-shrink-0 bg-pitch border-t border-border">
+            <div id="manual-selection-footer" class="flex-shrink-0 bg-pitch border-t border-border safe-bottom">
                 <div class="max-w-2xl mx-auto px-4 py-3">
                     <!-- Guest counter row -->
                     <div class="flex items-center justify-between mb-3">
@@ -1397,10 +1399,10 @@
                         </div>
                     </div>
                     <!-- Buttons row -->
-                    <div class="flex gap-3 safe-bottom">
+                    <div class="flex gap-3">
                         <button
                             onclick="showUploadFromWhatsApp()"
-                            class="flex-1 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-text-secondary text-sm font-medium transition-colors"
+                            class="flex-1 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-text-secondary text-xs font-medium transition-colors whitespace-nowrap"
                         >
                             Upload from WhatsApp
                         </button>
