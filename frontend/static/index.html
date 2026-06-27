@@ -1340,7 +1340,7 @@
                 </div>
 
                 <!-- Action buttons at bottom -->
-                <div class="flex gap-3 mt-6 pb-4 safe-bottom">
+                <div class="flex gap-3 mt-6 pb-8 safe-bottom">
                     <button
                         onclick="copyToClipboard()"
                         class="w-12 h-12 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-text-secondary hover:text-text-primary"
@@ -3003,13 +3003,9 @@
             document.getElementById('admin-step-edit').classList.add('hidden');
             document.getElementById('admin-step-teams').classList.remove('hidden');
 
-            // Show Save button only for admins
+            // Show Save button for all users (temporarily open like Generate Teams tab)
             const saveBtn = document.getElementById('save-teams-btn');
-            if (isAdmin) {
-                saveBtn.classList.remove('hidden');
-            } else {
-                saveBtn.classList.add('hidden');
-            }
+            saveBtn.classList.remove('hidden');
 
             // Scroll to top of page
             window.scrollTo(0, 0);
@@ -3030,13 +3026,9 @@
             document.getElementById('admin-step-edit').classList.add('hidden');
             document.getElementById('admin-step-teams').classList.remove('hidden');
 
-            // Show Save button only for admins
+            // Show Save button for all users (temporarily open like Generate Teams tab)
             const saveBtn = document.getElementById('save-teams-btn');
-            if (isAdmin) {
-                saveBtn.classList.remove('hidden');
-            } else {
-                saveBtn.classList.add('hidden');
-            }
+            saveBtn.classList.remove('hidden');
 
             // Scroll to top of page
             window.scrollTo(0, 0);
